@@ -1,17 +1,18 @@
-name: jokes
-
 services:
-  api:
-    build: .
-    container_name: jokes-api
-    ports:
-      - "3009:3009"
-    environment:
-      - NODE_ENV=production
-      - PORT=3009
+  jokes:
+    image: ghcr.io/apimgr/jokes:latest
+    container_name: jokes
     restart: unless-stopped
+    ports:
+      - "172.17.0.1:64321:80"
+    volumes:
+      - ./rootfs/data/jokes:/data
+      - ./rootfs/config/jokes:/config
+    environment:
+      - GIN_MODE=release
+      - PORT=80
     healthcheck:
-      test: ["CMD", "node", "-e", "const http = require('http'); const options = { host: 'localhost', port: 3009, path: '/healthz', timeout: 2000 }; const req = http.request(options, (res) => { if (res.statusCode === 200) { process.exit(0); } else { process.exit(1); } }); req.on('error', () => process.exit(1)); req.end();"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -21,5 +22,5 @@ services:
 
 networks:
   jokes:
-    external:false
     driver: bridge
+    external: false

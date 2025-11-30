@@ -1,0 +1,94 @@
+{{define "content"}}
+<div class="container">
+    <section class="hero">
+        <h2>🎭 Welcome to Jokes API</h2>
+        <p class="subtitle">5,160+ jokes across 16 categories - freely available for everyone!</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">{{.TotalJokes}}</span>
+                <span class="stat-label">Total Jokes</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{.TotalCategories}}</span>
+                <span class="stat-label">Categories</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">100%</span>
+                <span class="stat-label">Free & Open</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="joke-display">
+        <div class="joke-card">
+            <div class="joke-header">
+                <h3>😄 Random Joke</h3>
+                <button id="new-joke-btn" class="btn btn-primary">Get New Joke</button>
+            </div>
+            <div class="joke-content" id="joke-content">
+                <p class="joke-text">{{.RandomJoke.Joke}}</p>
+                <div class="joke-meta">
+                    <span class="joke-id">ID: {{.RandomJoke.ID}}</span>
+                    <div class="joke-categories">
+                        {{range .RandomJoke.Categories}}
+                        <span class="category-badge">{{.}}</span>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <h3>✨ Features</h3>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🚀</span>
+                <h4>Fast & Efficient</h4>
+                <p>Built with Go for maximum performance</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔓</span>
+                <h4>No Authentication</h4>
+                <p>Freely available without API keys</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h4>Mobile Ready</h4>
+                <p>PWA support for offline access</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <h4>REST API</h4>
+                <p>Clean, versioned REST endpoints</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔮</span>
+                <h4>GraphQL</h4>
+                <p>Flexible GraphQL queries</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h4>Swagger Docs</h4>
+                <p>Interactive API documentation</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-start">
+        <h3>🚀 Quick Start</h3>
+        <div class="code-block">
+            <button class="copy-btn" data-clipboard-target="#code-example">📋 Copy</button>
+            <pre id="code-example"><code># Get a random joke
+curl https://jokes.apimgr.us/api/v1/jokes/random
+
+# Get jokes from specific category
+curl https://jokes.apimgr.us/api/v1/jokes/random?limitTo=[nerdy]
+
+# Get 5 random jokes excluding explicit content
+curl https://jokes.apimgr.us/api/v1/jokes/random/5?exclude=explicit</code></pre>
+        </div>
+    </section>
+</div>
+{{end}}

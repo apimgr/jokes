@@ -1,0 +1,14 @@
+# Example server configuration for JOKES API
+# Copy this file to the appropriate location:
+#   - Root users: /etc/apimgr/jokes/server.yaml
+#   - Regular users: ~/.config/apimgr/jokes/server.yaml
+
+server:
+  # Host address to bind to
+  host: "0.0.0.0"
+
+  # Port to listen on
+  port: 3009
+
+  # Rate limit (requests per hour per IP)
+  rate_limit: 2000
