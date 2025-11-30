@@ -1,15 +1,97 @@
-# TODO.AI.md - Jokes API Full SPEC Compliance
+# TODO.AI.md - Jokes API BASE.md Compliance
 
 **Project**: jokes
 **Organization**: apimgr
-**Current Status**: Partial implementation, needs full SPEC compliance
+**Current Status**: Partial implementation, needs BASE.md compliance
 **Started**: 2025-11-25
+**Updated**: 2025-11-30 (BASE.md major update)
 
 ---
 
 ## Overview
 
-Rebuild the jokes API to match the complete SPEC requirements. The current implementation has basic functionality but needs significant enhancements for full compliance.
+Update jokes API to comply with the updated BASE.md specification (2025-11-30).
+
+## Current State Analysis
+
+### Already Done:
+- [x] Basic project structure with src/ directory
+- [x] src/data/data.go with embed pattern
+- [x] Basic CLI flags (--help, --version, --status, --data, --config, --address, --port)
+- [x] /healthz endpoint (but returns JSON, needs HTML)
+- [x] /openapi redirect (needs real Swagger UI)
+- [x] /graphql redirect (needs real GraphQL)
+- [x] robots.txt and security.txt handlers
+- [x] PWA files (manifest.json, sw.js)
+- [x] Basic config loading from .yaml
+- [x] Embedded jokes data (5,160+ jokes)
+
+### Missing per BASE.md:
+- [ ] Config file `.yml` (not `.yaml`) with auto-migration
+- [ ] Full config structure (admin, email, notifications, schedule, ssl, geoip, metrics, logs, etc.)
+- [ ] CLI: `--service {start,restart,stop,reload,--install,--uninstall,--disable,--help}`
+- [ ] CLI: `--maintenance {backup,restore,update,mode}`
+- [ ] `/healthz` must return HTML (not JSON)
+- [ ] `/api/v1/healthz` for JSON version
+- [ ] Real `/openapi` Swagger UI + `/openapi.json` + `/openapi.yaml`
+- [ ] Real `/graphql` endpoint (GET=GraphiQL, POST=queries)
+- [ ] `/metrics` Prometheus endpoint
+- [ ] `/admin` full web UI with login
+- [ ] `/api/v1/admin/*` REST API with token auth
+- [ ] Graceful shutdown (SIGTERM, SIGINT, SIGHUP)
+- [ ] Config reload on SIGHUP
+- [ ] PID file support
+- [ ] Built-in scheduler
+- [ ] Let's Encrypt support
+- [ ] Notifications system (bell icon)
+- [ ] Database migrations support
+- [ ] Cluster/HA support
+- [ ] Service management (systemd, launchd, Windows, BSD)
+
+---
+
+## Implementation Priority
+
+### Phase 1: Core Infrastructure (CURRENT)
+1. [ ] Update config to `.yml` with auto-migration from `.yaml`
+2. [ ] Add graceful shutdown (SIGTERM, SIGINT)
+3. [ ] Add config reload on SIGHUP
+4. [ ] Add PID file support
+5. [ ] Expand config structure per BASE.md
+
+### Phase 2: CLI Commands
+1. [ ] Add `--service` command with subcommands
+2. [ ] Add `--maintenance` command with subcommands
+
+### Phase 3: Required Endpoints
+1. [ ] Update `/healthz` to return HTML
+2. [ ] Add `/api/v1/healthz` for JSON
+3. [ ] Add real Swagger UI at `/openapi`
+4. [ ] Add `/openapi.json` and `/openapi.yaml`
+5. [ ] Add real GraphQL at `/graphql`
+6. [ ] Add `/metrics` Prometheus endpoint
+
+### Phase 4: Admin Panel
+1. [ ] Add `/admin` login page
+2. [ ] Add admin web UI (all sections)
+3. [ ] Add `/api/v1/admin/*` REST API
+4. [ ] Add session management
+5. [ ] Add CSRF protection
+
+### Phase 5: Advanced Features
+1. [ ] Built-in scheduler
+2. [ ] Let's Encrypt support
+3. [ ] Notifications system
+4. [ ] Database migrations
+5. [ ] Cluster support
+
+### Phase 6: Service Management
+1. [ ] systemd support
+2. [ ] macOS launchd support
+3. [ ] Windows Service support
+4. [ ] BSD rc.d support
+
+---
 
 ---
 

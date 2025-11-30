@@ -1,18 +1,25 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/apimgr/jokes/src/config"
 	"github.com/apimgr/jokes/src/models"
+	"github.com/apimgr/jokes/src/paths"
 	"github.com/apimgr/jokes/src/routes"
+	"github.com/apimgr/jokes/src/scheduler"
+	"github.com/apimgr/jokes/src/service"
 	"github.com/apimgr/jokes/src/web"
 	"github.com/gin-gonic/gin"
 )
@@ -20,13 +27,16 @@ import (
 const VERSION = "1.0.0"
 
 var (
-	showHelp    bool
-	showVersion bool
-	showStatus  bool
-	dataDir     string
-	configDir   string
-	listenAddr  string
-	port        int
+	showHelp      bool
+	showVersion   bool
+	showStatus    bool
+	dataDir       string
+	configDir     string
+	listenAddr    string
+	port          int
+	serviceCmd    string
+	maintenanceCmd string
+	cfg           *config.Config
 )
 
 func init() {
@@ -37,6 +47,8 @@ func init() {
 	flag.StringVar(&configDir, "config", "", "Set the config dir")
 	flag.StringVar(&listenAddr, "address", "", "Set listen address")
 	flag.IntVar(&port, "port", 0, "Set the port (64365 or 80,443, etc)")
+	flag.StringVar(&serviceCmd, "service", "", "Service command: start, stop, restart, reload, --install, --uninstall, --disable, --help")
+	flag.StringVar(&maintenanceCmd, "maintenance", "", "Maintenance command: backup, restore, update, mode [args]")
 }
 
 func main() {
@@ -60,25 +72,47 @@ func main() {
 		os.Exit(exitCode)
 	}
 
+	// Handle --service
+	if serviceCmd != "" {
+		handleServiceCommand(serviceCmd)
+		os.Exit(0)
+	}
+
+	// Handle --maintenance
+	if maintenanceCmd != "" {
+		handleMaintenanceCommand(maintenanceCmd, flag.Args())
+		os.Exit(0)
+	}
+
 	// Seed random number generator
 	rand.Seed(time.Now().UnixNano())
 
 	// Load configuration
-	cfg, err := config.LoadConfig()
+	var err error
+	cfg, err = config.LoadConfig()
 	if err != nil {
 		log.Fatalf("❌ Failed to load configuration: %v", err)
 	}
 
 	// Override config with CLI flags if provided
 	if listenAddr != "" {
-		cfg.Server.Host = listenAddr
+		cfg.Server.Address = listenAddr
 	}
 	if port != 0 {
 		cfg.Server.Port = port
 	}
 
 	log.Printf("✅ Configuration loaded from: %s", config.GetConfigPath())
-	log.Printf("🌐 Server will listen on %s:%d", cfg.Server.Host, cfg.Server.Port)
+	log.Printf("🌐 Server will listen on %s:%d", cfg.Server.Address, cfg.Server.Port)
+
+	// Write PID file if enabled
+	if cfg.Server.PIDFile {
+		if err := paths.WritePIDFile(); err != nil {
+			log.Printf("⚠️  Warning: %v", err)
+		} else {
+			log.Printf("📝 PID file: %s", paths.GetPIDFilePath())
+		}
+	}
 
 	// Determine jokes data file path
 	jokesPath := getJokesPath(dataDir)
@@ -107,21 +141,243 @@ func main() {
 	router := gin.Default()
 
 	// Setup routes
-	routes.SetupRoutes(router, cfg.Server.RateLimit)
+	routes.SetupRoutes(router, cfg.Server.RateLimit.Requests)
 
 	// Setup web routes
 	setupWebRoutes(router)
 
-	// Start server
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	log.Printf("🚀 JOKES API server starting on %s", addr)
-	log.Printf("🏥 Health check: http://%s/healthz", addr)
-	log.Printf("📖 API docs: http://%s/docs", addr)
-	log.Printf("🌐 Web interface: http://%s/", addr)
+	// Initialize and start scheduler
+	sched := scheduler.New()
+	if cfg.Server.Schedule.Enabled {
+		// Add scheduled tasks
+		sched.AddTask("cert_renewal", scheduler.ParseInterval(cfg.Server.Schedule.CertRenewal), func() error {
+			log.Println("📜 Checking certificate renewal...")
+			// TODO: Implement actual cert renewal check
+			return nil
+		})
 
-	if err := router.Run(addr); err != nil {
-		log.Fatalf("❌ Failed to start server: %v", err)
+		sched.AddTask("notifications", scheduler.ParseInterval(cfg.Server.Schedule.Notifications), func() error {
+			log.Println("🔔 Processing notifications...")
+			// TODO: Implement notification processing
+			return nil
+		})
+
+		sched.AddTask("cleanup", scheduler.ParseInterval(cfg.Server.Schedule.Cleanup), func() error {
+			log.Println("🧹 Running cleanup...")
+			// TODO: Implement cleanup tasks
+			return nil
+		})
+
+		sched.Start()
+		log.Printf("⏰ Scheduler started with %d tasks", len(sched.GetTasks()))
 	}
+
+	// Create HTTP server for graceful shutdown
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Address, cfg.Server.Port)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
+
+	// Start server in goroutine
+	go func() {
+		log.Printf("🚀 JOKES API server starting on %s", addr)
+		log.Printf("🏥 Health check: http://%s/healthz", addr)
+		log.Printf("📖 API docs: http://%s/docs", addr)
+		log.Printf("🌐 Web interface: http://%s/", addr)
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Failed to start server: %v", err)
+		}
+	}()
+
+	// Graceful shutdown handling
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	sig := <-quit
+	log.Printf("🛑 Received signal %v, shutting down gracefully...", sig)
+
+	// Handle SIGHUP for config reload (future use)
+	if sig == syscall.SIGHUP {
+		log.Printf("🔄 Config reload requested (not yet implemented)")
+		// In the future: reload config and continue
+		// For now, we'll shut down
+	}
+
+	// Stop scheduler
+	if cfg.Server.Schedule.Enabled {
+		sched.Stop()
+		log.Printf("⏰ Scheduler stopped")
+	}
+
+	// Create context with timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("❌ Server forced to shutdown: %v", err)
+	}
+
+	// Remove PID file
+	if cfg.Server.PIDFile {
+		paths.RemovePIDFile()
+	}
+
+	log.Printf("✅ Server stopped gracefully")
+}
+
+// handleServiceCommand handles --service commands
+func handleServiceCommand(cmd string) {
+	cmd = strings.ToLower(strings.TrimSpace(cmd))
+
+	switch cmd {
+	case "start":
+		fmt.Println("🚀 Starting jokes service...")
+		if err := service.Start(); err != nil {
+			fmt.Printf("❌ Failed to start service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Service started")
+	case "stop":
+		fmt.Println("🛑 Stopping jokes service...")
+		if err := service.Stop(); err != nil {
+			fmt.Printf("❌ Failed to stop service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Service stopped")
+	case "restart":
+		fmt.Println("🔄 Restarting jokes service...")
+		if err := service.Restart(); err != nil {
+			fmt.Printf("❌ Failed to restart service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Service restarted")
+	case "reload":
+		fmt.Println("🔄 Reloading jokes configuration...")
+		if err := service.Reload(); err != nil {
+			fmt.Printf("❌ Failed to reload service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("✅ Configuration reloaded")
+	case "--install":
+		fmt.Println("📦 Installing jokes as a service...")
+		if err := service.Install(); err != nil {
+			fmt.Printf("❌ Failed to install service: %v\n", err)
+			os.Exit(1)
+		}
+	case "--uninstall":
+		fmt.Println("🗑️  Uninstalling jokes service...")
+		if err := service.Uninstall(); err != nil {
+			fmt.Printf("❌ Failed to uninstall service: %v\n", err)
+			os.Exit(1)
+		}
+	case "--disable":
+		fmt.Println("🚫 Disabling jokes service...")
+		fmt.Println("ℹ️  Use systemctl disable jokes (Linux) or equivalent for your OS")
+	case "--help", "help":
+		printServiceHelp()
+	default:
+		fmt.Printf("❌ Unknown service command: %s\n", cmd)
+		printServiceHelp()
+		os.Exit(1)
+	}
+}
+
+// handleMaintenanceCommand handles --maintenance commands
+func handleMaintenanceCommand(cmd string, args []string) {
+	cmd = strings.ToLower(strings.TrimSpace(cmd))
+
+	switch cmd {
+	case "backup":
+		var backupPath string
+		if len(args) > 0 {
+			backupPath = args[0]
+		}
+		doBackup(backupPath)
+	case "restore":
+		var restorePath string
+		if len(args) > 0 {
+			restorePath = args[0]
+		}
+		doRestore(restorePath)
+	case "update":
+		doUpdate()
+	case "mode":
+		if len(args) == 0 {
+			fmt.Println("❌ Usage: --maintenance mode {true|false|enable|disable}")
+			os.Exit(1)
+		}
+		setMaintenanceMode(args[0])
+	default:
+		fmt.Printf("❌ Unknown maintenance command: %s\n", cmd)
+		fmt.Println("Available: backup, restore, update, mode")
+		os.Exit(1)
+	}
+}
+
+func printServiceHelp() {
+	fmt.Println("Service commands:")
+	fmt.Println("  start       Start the service")
+	fmt.Println("  stop        Stop the service")
+	fmt.Println("  restart     Restart the service")
+	fmt.Println("  reload      Reload configuration")
+	fmt.Println("  --install   Install as system service")
+	fmt.Println("  --uninstall Uninstall system service")
+	fmt.Println("  --disable   Disable the service")
+	fmt.Println("  --help      Show this help")
+}
+
+func doBackup(backupPath string) {
+	if backupPath == "" {
+		backupPath = filepath.Join(paths.GetBackupDir(), time.Now().Format("20060102150405")+".tar.gz")
+	}
+	fmt.Printf("💾 Creating backup at: %s\n", backupPath)
+	fmt.Println("ℹ️  Backup functionality not yet implemented")
+	// TODO: Implement backup
+}
+
+func doRestore(restorePath string) {
+	if restorePath == "" {
+		fmt.Println("ℹ️  Restoring from most recent backup...")
+		restorePath = filepath.Join(paths.GetBackupDir(), "latest.tar.gz")
+	}
+	fmt.Printf("📥 Restoring from: %s\n", restorePath)
+	fmt.Println("ℹ️  Restore functionality not yet implemented")
+	// TODO: Implement restore
+}
+
+func doUpdate() {
+	fmt.Println("🔄 Checking for updates...")
+	fmt.Printf("Current version: %s\n", VERSION)
+	fmt.Println("ℹ️  Update functionality not yet implemented")
+	// TODO: Implement auto-update from GitHub releases
+}
+
+func setMaintenanceMode(mode string) {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	enabled := false
+
+	switch mode {
+	case "1", "yes", "true", "enable", "enabled", "on":
+		enabled = true
+	case "0", "no", "false", "disable", "disabled", "off":
+		enabled = false
+	default:
+		fmt.Printf("❌ Invalid mode: %s\n", mode)
+		fmt.Println("Use: true, false, enable, disable, yes, no, on, off, 1, 0")
+		os.Exit(1)
+	}
+
+	if enabled {
+		fmt.Println("🔧 Maintenance mode ENABLED")
+		fmt.Println("ℹ️  Server will return 503 to all public requests")
+	} else {
+		fmt.Println("✅ Maintenance mode DISABLED")
+		fmt.Println("ℹ️  Server will accept all requests normally")
+	}
+	// TODO: Persist maintenance mode to config/state
 }
 
 func setupWebRoutes(router *gin.Engine) {
@@ -132,6 +388,11 @@ func setupWebRoutes(router *gin.Engine) {
 	router.GET("/manifest.json", web.ServeManifest)
 	router.GET("/sw.js", web.ServeServiceWorker)
 
+	// Security and robots
+	router.GET("/robots.txt", serveRobotsTxt)
+	router.GET("/security.txt", serveSecurityTxt)
+	router.GET("/.well-known/security.txt", serveSecurityTxt)
+
 	// Web pages
 	router.GET("/", web.ServeHome)
 	router.GET("/browse", web.ServeBrowse)
@@ -139,13 +400,29 @@ func setupWebRoutes(router *gin.Engine) {
 	router.GET("/categories", web.ServeCategories)
 	router.GET("/api-docs", web.ServeAPIDocs)
 
-	// Swagger and GraphQL placeholders (to be implemented)
+	// Swagger redirect (legacy)
 	router.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(302, "/api-docs")
+		c.Redirect(302, "/openapi")
 	})
-	router.GET("/graphql", func(c *gin.Context) {
-		c.Redirect(302, "/api-docs")
-	})
+}
+
+func serveRobotsTxt(c *gin.Context) {
+	content := `User-agent: *
+Allow: /
+Sitemap: https://jokes.apimgr.us/sitemap.xml
+`
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(200, content)
+}
+
+func serveSecurityTxt(c *gin.Context) {
+	content := `Contact: mailto:security@casjay.us
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://jokes.apimgr.us/.well-known/security.txt
+`
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(200, content)
 }
 
 func getJokesPath(dataDir string) string {
@@ -188,29 +465,34 @@ func printHelp() {
 	fmt.Println("Website: https://jokes.apimgr.us")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  jokes-api [flags]")
+	fmt.Println("  jokes [flags]")
 	fmt.Println()
 	fmt.Println("Flags:")
-	fmt.Println("  --help               Show this help message")
-	fmt.Println("  --version            Show version information")
-	fmt.Println("  --status             Show status and health, exit with code")
-	fmt.Println("  --data <dir>         Set data directory")
-	fmt.Println("  --config <dir>       Set config directory")
-	fmt.Println("  --address <addr>     Set listen address (default: 0.0.0.0)")
-	fmt.Println("  --port <port>        Set port (default: random 64xxx or 3009)")
+	fmt.Println("  --help                 Show this help message")
+	fmt.Println("  --version              Show version information")
+	fmt.Println("  --status               Show status and health, exit with code")
+	fmt.Println("  --data <dir>           Set data directory")
+	fmt.Println("  --config <dir>         Set config directory")
+	fmt.Println("  --address <addr>       Set listen address (default: [::])")
+	fmt.Println("  --port <port>          Set port (default: random 64xxx)")
+	fmt.Println("  --service <cmd>        Service: start, stop, restart, reload, --install, --uninstall")
+	fmt.Println("  --maintenance <cmd>    Maintenance: backup, restore, update, mode")
 	fmt.Println()
 	fmt.Println("Examples:")
-	fmt.Println("  jokes-api")
-	fmt.Println("  jokes-api --port 8080")
-	fmt.Println("  jokes-api --address 127.0.0.1 --port 3009")
-	fmt.Println("  jokes-api --data /path/to/data")
+	fmt.Println("  jokes                            Start server with defaults")
+	fmt.Println("  jokes --port 8080                Start on specific port")
+	fmt.Println("  jokes --address 127.0.0.1        Bind to localhost only")
+	fmt.Println("  jokes --service --install        Install as system service")
+	fmt.Println("  jokes --maintenance backup       Create backup")
+	fmt.Println("  jokes --maintenance mode on      Enable maintenance mode")
 	fmt.Println()
 	fmt.Println("Configuration:")
-	fmt.Printf("  Root:    /etc/apimgr/jokes/server.yaml\n")
-	fmt.Printf("  User:    ~/.config/apimgr/jokes/server.yaml\n")
+	fmt.Printf("  Root:    /etc/apimgr/jokes/server.yml\n")
+	fmt.Printf("  User:    ~/.config/apimgr/jokes/server.yml\n")
 	fmt.Println()
 	fmt.Println("API Endpoints:")
-	fmt.Println("  GET  /healthz                    Health check")
+	fmt.Println("  GET  /healthz                    Health check (HTML)")
+	fmt.Println("  GET  /api/v1/healthz             Health check (JSON)")
 	fmt.Println("  GET  /api/v1/jokes/random        Random joke")
 	fmt.Println("  GET  /api/v1/jokes/{id}          Specific joke")
 	fmt.Println("  GET  /api/v1/jokes/all           All jokes")

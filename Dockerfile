@@ -1,6 +1,10 @@
 # Multi-stage build for jokes API
 # Stage 1: Build the Go binary
+<<<<<<< Updated upstream
 FROM golang:1.21-alpine AS builder
+=======
+FROM golang:1.24-alpine AS builder
+>>>>>>> Stashed changes
 
 # Install build dependencies
 RUN apk add --no-cache git make curl bash
@@ -46,6 +50,7 @@ RUN addgroup -g 1001 -S jokes && \
 RUN mkdir -p /data /config /var/log/jokes && \
     chown -R jokes:jokes /data /config /var/log/jokes
 
+<<<<<<< Updated upstream
 # Copy binary from builder
 COPY --from=builder /build/jokes-api /usr/local/bin/jokes-api
 RUN chmod +x /usr/local/bin/jokes-api
@@ -53,6 +58,12 @@ RUN chmod +x /usr/local/bin/jokes-api
 # Copy data files
 COPY --chown=jokes:jokes src/data /data
 
+=======
+# Copy binary from builder (data is embedded in binary)
+COPY --from=builder /build/jokes-api /usr/local/bin/jokes-api
+RUN chmod +x /usr/local/bin/jokes-api
+
+>>>>>>> Stashed changes
 # Switch to non-root user
 USER jokes
 
