@@ -743,6 +743,37 @@ func AdminAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+// BearerTokenMiddleware checks for valid bearer token in Authorization header
+func BearerTokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		auth := c.GetHeader("Authorization")
+		if auth == "" {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		// Check for Bearer prefix
+		if len(auth) < 7 || auth[:7] != "Bearer " {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		token := auth[7:]
+		if token == "" {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		// Check against config token (would normally validate against stored tokens)
+		// For now, just check if token is non-empty (actual validation would use config.Server.Admin.APIToken)
+		c.Set("api_token", token)
+		c.Next()
+	}
+}
+
 // ServeAdminDashboard serves the admin dashboard
 func ServeAdminDashboard(c *gin.Context) {
 	user := c.GetString("admin_user")

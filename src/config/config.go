@@ -18,6 +18,12 @@ type AdminConfig struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 	Token    string `yaml:"token"`
+	APIToken string `yaml:"api_token"`
+}
+
+// SessionConfig holds session settings
+type SessionConfig struct {
+	Timeout int `yaml:"timeout"`
 }
 
 // RateLimitConfig holds rate limiting settings
@@ -83,8 +89,11 @@ type ServerConfig struct {
 	FQDN          string              `yaml:"fqdn"`
 	Title         string              `yaml:"title"`
 	Description   string              `yaml:"description"`
+	Mode          string              `yaml:"mode"`
+	UpdateBranch  string              `yaml:"update_branch"`
 	PIDFile       bool                `yaml:"pidfile"`
 	Admin         AdminConfig         `yaml:"admin"`
+	Session       SessionConfig       `yaml:"session"`
 	RateLimit     RateLimitConfig     `yaml:"rate_limit"`
 	Logs          LogsConfig          `yaml:"logs"`
 	SSL           SSLConfig           `yaml:"ssl"`
@@ -186,12 +195,25 @@ func applyDefaults(cfg *Config) {
 		}
 	}
 
+	// Mode defaults
+	if cfg.Server.Mode == "" {
+		cfg.Server.Mode = "production"
+	}
+	if cfg.Server.UpdateBranch == "" {
+		cfg.Server.UpdateBranch = "stable"
+	}
+
 	// Admin defaults
 	if cfg.Server.Admin.Username == "" {
 		cfg.Server.Admin.Username = "administrator"
 	}
 	if cfg.Server.Admin.Email == "" {
 		cfg.Server.Admin.Email = "admin@" + cfg.Server.FQDN
+	}
+
+	// Session defaults
+	if cfg.Server.Session.Timeout == 0 {
+		cfg.Server.Session.Timeout = 3600
 	}
 
 	// Rate limit defaults

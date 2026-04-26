@@ -73,9 +73,11 @@ func SetupRoutes(router *gin.Engine, rateLimit int) {
 		v1.GET("/jokes/all", handlers.GetAllJokes)
 		v1.GET("/jokes/:id", handlers.GetJokeByID)
 
-		// Admin API (token auth)
+		// Admin API (bearer token auth)
 		adminAPI := v1.Group("/admin")
+		adminAPI.Use(handlers.BearerTokenMiddleware())
 		{
+			adminAPI.GET("/status", handlers.GetAdminStats)
 			adminAPI.GET("/config", handlers.GetAdminConfig)
 			adminAPI.GET("/stats", handlers.GetAdminStats)
 		}

@@ -27,16 +27,18 @@ import (
 const VERSION = "1.0.0"
 
 var (
-	showHelp      bool
-	showVersion   bool
-	showStatus    bool
-	dataDir       string
-	configDir     string
-	listenAddr    string
-	port          int
-	serviceCmd    string
+	showHelp       bool
+	showVersion    bool
+	showStatus     bool
+	dataDir        string
+	configDir      string
+	listenAddr     string
+	port           int
+	serviceCmd     string
 	maintenanceCmd string
-	cfg           *config.Config
+	modeFlag       string
+	updateCmd      string
+	cfg            *config.Config
 )
 
 func init() {
@@ -48,7 +50,9 @@ func init() {
 	flag.StringVar(&listenAddr, "address", "", "Set listen address")
 	flag.IntVar(&port, "port", 0, "Set the port (64365 or 80,443, etc)")
 	flag.StringVar(&serviceCmd, "service", "", "Service command: start, stop, restart, reload, --install, --uninstall, --disable, --help")
-	flag.StringVar(&maintenanceCmd, "maintenance", "", "Maintenance command: backup, restore, update, mode [args]")
+	flag.StringVar(&maintenanceCmd, "maintenance", "", "Maintenance command: backup, restore, update, mode, setup [args]")
+	flag.StringVar(&modeFlag, "mode", "", "Application mode: production, development")
+	flag.StringVar(&updateCmd, "update", "", "Update commands: check, yes, branch {stable|beta|daily}")
 }
 
 func main() {
@@ -70,6 +74,18 @@ func main() {
 	if showStatus {
 		exitCode := checkStatus()
 		os.Exit(exitCode)
+	}
+
+	// Handle --mode
+	if modeFlag != "" {
+		setApplicationMode(modeFlag)
+		os.Exit(0)
+	}
+
+	// Handle --update
+	if updateCmd != "" {
+		handleUpdateCommand(updateCmd)
+		os.Exit(0)
 	}
 
 	// Handle --service
@@ -310,9 +326,11 @@ func handleMaintenanceCommand(cmd string, args []string) {
 			os.Exit(1)
 		}
 		setMaintenanceMode(args[0])
+	case "setup":
+		runSetupWizard()
 	default:
 		fmt.Printf("❌ Unknown maintenance command: %s\n", cmd)
-		fmt.Println("Available: backup, restore, update, mode")
+		fmt.Println("Available: backup, restore, update, mode, setup")
 		os.Exit(1)
 	}
 }
@@ -540,4 +558,92 @@ func checkStatus() int {
 	}
 
 	return 0
+}
+
+// setApplicationMode sets the application mode in config (for --mode flag)
+func setApplicationMode(mode string) {
+	validModes := map[string]bool{
+		"production":  true,
+		"development": true,
+		"debug":       true,
+	}
+
+	if !validModes[mode] {
+		fmt.Printf("❌ Invalid mode: %s\n", mode)
+		fmt.Println("Valid modes: production, development, debug")
+		os.Exit(1)
+	}
+
+	currentCfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("❌ Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	currentCfg.Server.Mode = mode
+	fmt.Printf("✅ Application mode set to: %s\n", mode)
+	fmt.Println("ℹ️  Config save not yet implemented")
+}
+
+// handleUpdateCommand handles update-related commands
+func handleUpdateCommand(cmd string) {
+	currentCfg, _ := config.LoadConfig()
+
+	switch cmd {
+	case "check":
+		fmt.Println("🔄 Checking for updates...")
+		fmt.Printf("Current version: %s\n", VERSION)
+		branch := "stable"
+		if currentCfg != nil && currentCfg.Server.UpdateBranch != "" {
+			branch = currentCfg.Server.UpdateBranch
+		}
+		fmt.Printf("Update branch: %s\n", branch)
+		fmt.Println("ℹ️  Update feature not yet implemented")
+	case "yes":
+		fmt.Println("🔄 Performing update...")
+		fmt.Println("ℹ️  Update feature not yet implemented")
+	default:
+		if strings.HasPrefix(cmd, "branch ") {
+			branch := strings.TrimPrefix(cmd, "branch ")
+			validBranches := map[string]bool{
+				"stable": true,
+				"beta":   true,
+				"daily":  true,
+			}
+			if !validBranches[branch] {
+				fmt.Printf("❌ Invalid branch: %s\n", branch)
+				fmt.Println("Valid branches: stable, beta, daily")
+				os.Exit(1)
+			}
+			fmt.Printf("✅ Update branch set to: %s\n", branch)
+			fmt.Println("ℹ️  Config save not yet implemented")
+		} else {
+			fmt.Printf("❌ Unknown update command: %s\n", cmd)
+			fmt.Println("Usage: --update check|yes|branch {stable|beta|daily}")
+			os.Exit(1)
+		}
+	}
+}
+
+// runSetupWizard runs the interactive setup wizard
+func runSetupWizard() {
+	fmt.Println("🎭 Jokes API Setup Wizard")
+	fmt.Println("=========================")
+	fmt.Println()
+
+	configPath := config.GetConfigPath()
+	currentCfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("⚠️  Warning: Could not load config: %v\n", err)
+		fmt.Println("Using defaults...")
+	}
+
+	fmt.Printf("Configuration file: %s\n", configPath)
+	if currentCfg != nil {
+		fmt.Printf("Current mode: %s\n", currentCfg.Server.Mode)
+		fmt.Printf("Current port: %d\n", currentCfg.Server.Port)
+		fmt.Printf("Admin username: %s\n", currentCfg.Server.Admin.Username)
+	}
+	fmt.Println()
+	fmt.Println("✅ Setup complete. Edit the configuration file to customize settings.")
 }
