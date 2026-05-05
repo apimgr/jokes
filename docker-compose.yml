@@ -6,8 +6,8 @@ services:
     ports:
       - "172.17.0.1:64321:80"
     volumes:
-      - ./rootfs/data/jokes:/data
-      - ./rootfs/config/jokes:/config
+      - ./volumes/data/jokes:/data
+      - ./volumes/config/jokes:/config
     environment:
       - GIN_MODE=release
       - PORT=80
