@@ -8,7 +8,6 @@ jokes-api-*
 *.dylib
 binaries/
 releases/
-<<<<<<< Updated upstream
 
 # Test binary
 *.test
@@ -104,32 +103,6 @@ Temporary Items
 Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
-=======
-
-# Test binary
-*.test
-
-# Output of the go coverage tool
-*.out
-coverage.html
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
->>>>>>> Stashed changes
 
 # Config files (user-specific)
 server.yaml
@@ -139,7 +112,6 @@ config.yaml
 rootfs/
 .dockerignore
 
-<<<<<<< Updated upstream
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
@@ -188,10 +160,6 @@ $RECYCLE.BIN/
 # Output of the go coverage tool, specifically when used with LiteIDE
 # Dependency directories (remove the comment below to include it)
 # vendor/
-=======
-# Logs
-*.log
->>>>>>> Stashed changes
 
 # Temp files
 tmp/

@@ -6,13 +6,8 @@ services:
     ports:
       - "172.17.0.1:64321:80"
     volumes:
-<<<<<<< Updated upstream
       - ./volumes/data/jokes:/data
       - ./volumes/config/jokes:/config
-=======
-      - ./rootfs/data/jokes:/data
-      - ./rootfs/config/jokes:/config
->>>>>>> Stashed changes
     environment:
       - GIN_MODE=release
       - PORT=80
