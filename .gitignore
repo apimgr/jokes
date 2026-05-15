@@ -38,7 +38,7 @@ server.yaml
 config.yaml
 
 # Docker
-rootfs/
+
 .dockerignore
 
 # Logs
@@ -109,7 +109,7 @@ server.yaml
 config.yaml
 
 # Docker
-rootfs/
+
 .dockerignore
 
 # Recycle Bin used on file shares
