@@ -3,6 +3,7 @@
 .gitignore
 .gitattributes
 
+<<<<<<< Updated upstream
 # CI/CD workflows (not needed in container)
 .github/
 .gitea/
@@ -28,11 +29,24 @@ docs/
 Makefile
 
 # IDE
+=======
+# Build artifacts
+binaries/
+releases/
+*.test
+*.out
+coverage.html
+
+# IDE
+.vscode/
+>>>>>>> Stashed changes
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 
+<<<<<<< Updated upstream
 # AI config directories
 .claude/
 .cursor/
@@ -43,3 +57,39 @@ Makefile
 # Coverage
 coverage.out
 coverage.html
+=======
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+rootfs/
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
+Jenkinsfile
+.travis.yml
+.gitlab-ci.yml
+
+# Config (will be created at runtime)
+server.yaml
+config.yaml
+
+# Logs
+*.log
+
+# Temp
+tmp/
+temp/
+
+# Node (if any)
+node_modules/
+package-lock.json
+>>>>>>> Stashed changes
