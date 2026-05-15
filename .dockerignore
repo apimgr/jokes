@@ -25,7 +25,6 @@ Thumbs.db
 Dockerfile
 docker-compose.yml
 .dockerignore
-rootfs/
 
 # Documentation
 *.md
