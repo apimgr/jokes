@@ -1,0 +1,31 @@
+services:
+  jokes:
+    image: ghcr.io/apimgr/jokes:latest
+    container_name: jokes
+    restart: unless-stopped
+    ports:
+      - "172.17.0.1:64321:80"
+    volumes:
+<<<<<<< Updated upstream
+      - ./volumes/data/jokes:/data
+      - ./volumes/config/jokes:/config
+=======
+      - ./rootfs/data/jokes:/data
+      - ./rootfs/config/jokes:/config
+>>>>>>> Stashed changes
+    environment:
+      - GIN_MODE=release
+      - PORT=80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - jokes
+
+networks:
+  jokes:
+    driver: bridge
+    external: false

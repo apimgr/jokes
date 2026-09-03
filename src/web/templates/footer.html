@@ -1,0 +1,33 @@
+{{define "footer"}}
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Jokes API</h3>
+                <p>5,160+ jokes across 16 categories</p>
+                <p><a href="https://jokes.apimgr.us" target="_blank">jokes.apimgr.us</a></p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="/api-docs">API Documentation</a></li>
+                    <li><a href="/swagger">Swagger UI</a></li>
+                    <li><a href="/graphql">GraphQL Playground</a></li>
+                    <li><a href="/healthz">Health Check</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="https://github.com/apimgr/jokes" target="_blank">GitHub</a></li>
+                    <li><a href="/api/v1/jokes/count">Statistics</a></li>
+                    <li><a href="/api/v1/jokes/categories">Categories</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {{.Year}} APIMGR | <a href="https://github.com/apimgr/jokes/blob/main/LICENSE.md" target="_blank">MIT License</a> | Version {{.Version}}</p>
+        </div>
+    </div>
+</footer>
+{{end}}

@@ -1,0 +1,16 @@
+{{define "nav"}}
+<nav>
+    <div class="container">
+        <ul class="nav-links">
+            <li><a href="/" class="{{if eq .Page "home"}}active{{end}}">🏠 Home</a></li>
+            <li><a href="/browse" class="{{if eq .Page "browse"}}active{{end}}">📚 Browse</a></li>
+            <li><a href="/random" class="{{if eq .Page "random"}}active{{end}}">🎲 Random</a></li>
+            <li><a href="/categories" class="{{if eq .Page "categories"}}active{{end}}">🏷️ Categories</a></li>
+            <li><a href="/api-docs" class="{{if eq .Page "api-docs"}}active{{end}}">📖 API Docs</a></li>
+            <li><a href="/swagger" class="{{if eq .Page "swagger"}}active{{end}}">⚡ Swagger</a></li>
+            <li><a href="/graphql" class="{{if eq .Page "graphql"}}active{{end}}">🔮 GraphQL</a></li>
+        </ul>
+        <button class="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+</nav>
+{{end}}

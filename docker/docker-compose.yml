@@ -1,0 +1,25 @@
+name: jokes
+
+services:
+  jokes:
+    image: ghcr.io/apimgr/jokes:latest
+    container_name: jokes
+    restart: unless-stopped
+    environment:
+      # Hardcoded with sane defaults - NO .env files
+      - MODE=production
+      - TZ=America/New_York
+      # ENABLE_TOR=true is default, no need to specify
+    ports:
+      # Production: bound to Docker bridge only
+      - "172.17.0.1:64580:80"
+    volumes:
+      - ./rootfs/config/jokes:/config
+      - ./rootfs/data/jokes:/data
+    networks:
+      - jokes
+
+networks:
+  jokes:
+    name: jokes
+    external: false
