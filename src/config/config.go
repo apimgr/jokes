@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -375,8 +374,6 @@ func createDefaultConfig(configPath string, cfg *Config) error {
 
 // findAvailablePort finds an available port in the 64xxx range
 func findAvailablePort() int {
-	rand.Seed(time.Now().UnixNano())
-
 	// Try to find an available port in 64000-64999 range
 	for i := 0; i < 100; i++ {
 		port := 64000 + rand.Intn(1000)

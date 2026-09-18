@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -121,9 +120,6 @@ func main() {
 		handleMaintenanceCommand(maintenanceCmd, flag.Args())
 		os.Exit(0)
 	}
-
-	// Seed random number generator
-	rand.Seed(time.Now().UnixNano())
 
 	// Load configuration
 	var err error
