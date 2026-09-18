@@ -8,7 +8,6 @@ jokes-api-*
 *.dylib
 binaries/
 releases/
-<<<<<<< Updated upstream
 
 # Test binary
 *.test
@@ -39,8 +38,57 @@ server.yaml
 config.yaml
 
 # Docker
+# docker/rootfs/ is committed (build-time container overlay)
+volumes/rootfs/
 
-.dockerignore
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# misc
+!*/README*
+!inc/main.bash
+
+# Windows shortcuts
+*.lnk
+
+# ignore commit message
+**/.gitcommit
+
+# ignore .build_failed files
+**/.build_failed*
+
+# ignore .bak files
+**/*.bak
+
+# ignore .no_push files
+**/.no_push
+
+# ignore .no_git files
+**/.no_git
+
+# ignore .installed files
+**/.installed
+
+# ignore work in progress files
+**/*.rewrite.sh
+**/*.refactor.sh
+
+### Go ###
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+# Test binary, built with `go test -c`
+# Output of the go coverage tool, specifically when used with LiteIDE
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
 # Logs
 *.log
@@ -51,9 +99,6 @@ temp/
 
 # Disable reminder in prompt
 ignoredirmessage
-
-# ignore .build_failed files
-**/.build_failed*
 
 # OS generated files
 ### Linux ###
@@ -104,98 +149,3 @@ Temporary Items
 Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
-=======
-
-# Test binary
-*.test
-
-# Output of the go coverage tool
-*.out
-coverage.html
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
->>>>>>> Stashed changes
-
-# Config files (user-specific)
-server.yaml
-config.yaml
-
-# Docker
-<<<<<<< Updated upstream
-
-.dockerignore
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# misc
-!*/README*
-!inc/main.bash
-
-# Windows shortcuts
-*.lnk
-
-# ignore commit message
-**/.gitcommit
-
-# ignore .build_failed files
-**/.build_failed*
-
-# ignore .bak files
-**/*.bak
-
-# ignore .no_push files
-**/.no_push
-
-# ignore .no_git files
-**/.no_git
-
-# ignore .installed files
-**/.installed
-
-# ignore work in progress files
-**/*.rewrite.sh
-**/*.refactor.sh
-
-### Go ###
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-# Test binary, built with `go test -c`
-# Output of the go coverage tool, specifically when used with LiteIDE
-# Dependency directories (remove the comment below to include it)
-# vendor/
-=======
-rootfs/
-.dockerignore
-
-# Logs
-*.log
->>>>>>> Stashed changes
-
-# Temp files
-tmp/
-temp/
