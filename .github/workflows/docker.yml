@@ -1,0 +1,179 @@
+name: Docker
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*.[0-9]*.[0-9]*'
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_NAME: jokes
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-standard:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: docker-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/beta' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set build info
+        run: |
+          if [ -f release.txt ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "VERSION=$(cat release.txt)" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+          else
+            echo "VERSION=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+          fi
+          echo "COMMIT_ID=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+          BUILD_EPOCH=$(date -u +%s)
+          echo "BUILD_EPOCH=${BUILD_EPOCH}" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u -d @${BUILD_EPOCH} +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+          echo "YYMM=$(date -u +%y%m)" >> $GITHUB_ENV
+          if [ -f site.txt ]; then
+            echo "OFFICIAL_SITE=$(cat site.txt)" >> $GITHUB_ENV
+          else
+            echo "OFFICIAL_SITE=${{ secrets.OFFICIAL_SITE }}" >> $GITHUB_ENV
+          fi
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.YYMM }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/beta" ]]; then
+            TAGS="$TAGS,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta"
+          fi
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3  # v4.1.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
+            BUILD_EPOCH=${{ env.BUILD_EPOCH }}
+            COMMIT_ID=${{ env.COMMIT_ID }}
+            OFFICIAL_SITE=${{ env.OFFICIAL_SITE }}
+          labels: |
+            org.opencontainers.image.title=${{ env.PROJECT_NAME }}
+            org.opencontainers.image.description=Containerized version of ${{ env.PROJECT_NAME }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ env.COMMIT_ID }}
+            org.opencontainers.image.created=${{ env.BUILD_DATE }}
+            org.opencontainers.image.licenses=MIT
+          annotations: |
+            org.opencontainers.image.title=${{ env.PROJECT_NAME }}
+            org.opencontainers.image.description=Containerized version of ${{ env.PROJECT_NAME }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ env.COMMIT_ID }}
+
+  build-devel:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: docker-devel-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/beta' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set build info
+        run: |
+          echo "VERSION=devel" >> $GITHUB_ENV
+          echo "COMMIT_ID=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+          BUILD_EPOCH=$(date -u +%s)
+          echo "BUILD_EPOCH=${BUILD_EPOCH}" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u -d @${BUILD_EPOCH} +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+          if [ -f site.txt ]; then
+            echo "OFFICIAL_SITE=$(cat site.txt)" >> $GITHUB_ENV
+          else
+            echo "OFFICIAL_SITE=${{ secrets.OFFICIAL_SITE }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3  # v4.1.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push devel image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile.dev
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:devel
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
+            BUILD_EPOCH=${{ env.BUILD_EPOCH }}
+            COMMIT_ID=${{ env.COMMIT_ID }}
+            OFFICIAL_SITE=${{ env.OFFICIAL_SITE }}
+          labels: |
+            org.opencontainers.image.title=${{ env.PROJECT_NAME }}
+            org.opencontainers.image.description=Containerized version of ${{ env.PROJECT_NAME }} - development image
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ env.COMMIT_ID }}
+            org.opencontainers.image.created=${{ env.BUILD_DATE }}
+            org.opencontainers.image.licenses=MIT
+          annotations: |
+            org.opencontainers.image.title=${{ env.PROJECT_NAME }}
+            org.opencontainers.image.description=Containerized version of ${{ env.PROJECT_NAME }} - development image
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ env.COMMIT_ID }}

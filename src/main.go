@@ -24,7 +24,29 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// VERSION is the fallback version string used when the binary was not built
+// with -ldflags version stamping (e.g. `go run` or a plain `go build`).
 const VERSION = "1.0.0"
+
+// Version, CommitID, BuildEpoch, and OfficialSite are stamped at build time via
+// -ldflags "-X main.Version=... -X main.CommitID=... -X main.BuildEpoch=... -X main.OfficialSite=...".
+// They stay empty for unstamped builds; callers fall back to VERSION/"unknown"/etc.
+var (
+	Version      string
+	CommitID     string
+	BuildEpoch   string
+	OfficialSite string
+)
+
+// effectiveVersion returns the linker-stamped Version when the binary was
+// built with -ldflags version stamping, falling back to the VERSION const
+// for unstamped builds (e.g. `go run` or a plain `go build`).
+func effectiveVersion() string {
+	if Version != "" {
+		return Version
+	}
+	return VERSION
+}
 
 var (
 	showHelp       bool
@@ -66,7 +88,7 @@ func main() {
 
 	// Handle --version
 	if showVersion {
-		fmt.Printf("🎭 Jokes API v%s\n", VERSION)
+		fmt.Printf("🎭 Jokes API v%s\n", effectiveVersion())
 		os.Exit(0)
 	}
 
@@ -368,7 +390,7 @@ func doRestore(restorePath string) {
 
 func doUpdate() {
 	fmt.Println("🔄 Checking for updates...")
-	fmt.Printf("Current version: %s\n", VERSION)
+	fmt.Printf("Current version: %s\n", effectiveVersion())
 	fmt.Println("ℹ️  Update functionality not yet implemented")
 	// TODO: Implement auto-update from GitHub releases
 }
@@ -479,7 +501,7 @@ func getJokesPath(dataDir string) string {
 func printHelp() {
 	fmt.Println("🎭 Jokes API - 5,160+ jokes across 16 categories")
 	fmt.Println()
-	fmt.Printf("Version: %s\n", VERSION)
+	fmt.Printf("Version: %s\n", effectiveVersion())
 	fmt.Println("Website: https://jokes.apimgr.us")
 	fmt.Println()
 	fmt.Println("Usage:")
@@ -592,7 +614,7 @@ func handleUpdateCommand(cmd string) {
 	switch cmd {
 	case "check":
 		fmt.Println("🔄 Checking for updates...")
-		fmt.Printf("Current version: %s\n", VERSION)
+		fmt.Printf("Current version: %s\n", effectiveVersion())
 		branch := "stable"
 		if currentCfg != nil && currentCfg.Server.UpdateBranch != "" {
 			branch = currentCfg.Server.UpdateBranch

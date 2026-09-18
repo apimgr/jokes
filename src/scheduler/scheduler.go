@@ -88,7 +88,8 @@ func (s *Scheduler) Start() {
 	log.Printf("Scheduler: Started with %d tasks", len(s.tasks))
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
+		// Check every second so tasks with sub-30s intervals still run on time
+		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 
 		for {

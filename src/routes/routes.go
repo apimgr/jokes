@@ -28,21 +28,6 @@ func SetupRoutes(router *gin.Engine, rateLimit int) {
 	router.GET("/graphql", handlers.ServeGraphiQL)
 	router.POST("/graphql", handlers.HandleGraphQL)
 
-	// Admin endpoints (root level)
-	router.GET("/admin", handlers.ServeAdminLogin)
-	router.POST("/admin/login", handlers.HandleAdminLogin)
-	router.GET("/admin/logout", handlers.HandleAdminLogout)
-
-	// Protected admin routes
-	admin := router.Group("/admin")
-	admin.Use(handlers.AdminAuthMiddleware())
-	{
-		admin.GET("/dashboard", handlers.ServeAdminDashboard)
-		admin.GET("/settings", handlers.ServeAdminSettings)
-		admin.GET("/logs", handlers.ServeAdminLogs)
-		admin.GET("/backup", handlers.ServeAdminBackup)
-	}
-
 	// Documentation endpoints
 	router.GET("/api", handlers.GetRoot)
 	router.GET("/docs", handlers.GetDocs)

@@ -37,7 +37,7 @@ func ServeHome(c *gin.Context) {
 		RandomJoke:      randomJoke,
 	}
 
-	c.HTML(http.StatusOK, "index.html", data)
+	c.HTML(http.StatusOK, "base.html", data)
 }
 
 // ServeBrowse serves the browse page

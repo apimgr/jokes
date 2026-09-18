@@ -1,10 +1,10 @@
 # =============================================================================
-# Build Stage - Compile Go binary
+# Build Stage - Compile Go binary (debug mode, unstripped)
 # =============================================================================
 FROM golang:alpine AS builder
 
 ARG TARGETARCH
-ARG VERSION=dev
+ARG VERSION=devel
 ARG BUILD_DATE
 ARG BUILD_EPOCH
 ARG COMMIT_ID
@@ -16,19 +16,19 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source and build
+# Copy source and build (unstripped, for debug symbols)
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
-    -ldflags "-s -w -X 'main.Version=${VERSION}' -X 'main.CommitID=${COMMIT_ID}' -X 'main.BuildEpoch=${BUILD_EPOCH}' -X 'main.OfficialSite=${OFFICIAL_SITE}'" \
+    -ldflags "-X 'main.Version=${VERSION}' -X 'main.CommitID=${COMMIT_ID}' -X 'main.BuildEpoch=${BUILD_EPOCH}' -X 'main.OfficialSite=${OFFICIAL_SITE}'" \
     -o /app ./src
 
 # =============================================================================
-# Runtime Stage - Minimal Alpine image
+# Runtime Stage - Minimal Alpine image (development/debug)
 # =============================================================================
 FROM alpine:latest
 
 # ARGs for build-time values (set by docker build --build-arg)
-ARG VERSION=dev
+ARG VERSION=devel
 ARG BUILD_DATE
 ARG COMMIT_ID
 ARG LICENSE=MIT
@@ -39,7 +39,7 @@ LABEL maintainer="apimgr <apimgr@casjay.pro>" \
       org.opencontainers.image.authors="apimgr" \
       org.opencontainers.image.title="jokes" \
       org.opencontainers.image.base.name="jokes" \
-      org.opencontainers.image.description="Containerized version of jokes" \
+      org.opencontainers.image.description="Containerized version of jokes - development image (alpine, debug mode)" \
       org.opencontainers.image.url="https://github.com/apimgr/jokes" \
       org.opencontainers.image.source="https://github.com/apimgr/jokes" \
       org.opencontainers.image.documentation="https://github.com/apimgr/jokes" \
@@ -53,7 +53,7 @@ LABEL org.opencontainers.image.licenses="${LICENSE}" \
       org.opencontainers.image.schema-version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT_ID}"
 
-# Install required packages including Tor
+# Install required packages including Tor and debug tooling
 RUN apk add --no-cache \
     curl \
     bash \
@@ -70,13 +70,14 @@ COPY --from=builder /app /usr/local/bin/jokes
 COPY docker/rootfs/ /
 
 # Copy Dockerfile to image (for reference and backup)
-COPY docker/Dockerfile /root/Dockerfile
+COPY docker/Dockerfile.dev /root/Dockerfile
 
 # Make all binaries/scripts in /usr/local/bin executable (755)
 RUN chmod 755 /usr/local/bin/*
 
-# Set environment
+# Set environment (development defaults, debug mode enabled)
 ENV MODE=development \
+    DEBUG=true \
     TZ=America/New_York \
     ENABLE_TOR=true
 

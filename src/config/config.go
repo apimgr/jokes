@@ -12,18 +12,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// AdminConfig holds admin panel credentials
+// AdminConfig holds admin contact details
 type AdminConfig struct {
 	Email    string `yaml:"email"`
 	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Token    string `yaml:"token"`
-	APIToken string `yaml:"api_token"`
-}
-
-// SessionConfig holds session settings
-type SessionConfig struct {
-	Timeout int `yaml:"timeout"`
 }
 
 // RateLimitConfig holds rate limiting settings
@@ -93,7 +85,6 @@ type ServerConfig struct {
 	UpdateBranch  string              `yaml:"update_branch"`
 	PIDFile       bool                `yaml:"pidfile"`
 	Admin         AdminConfig         `yaml:"admin"`
-	Session       SessionConfig       `yaml:"session"`
 	RateLimit     RateLimitConfig     `yaml:"rate_limit"`
 	Logs          LogsConfig          `yaml:"logs"`
 	SSL           SSLConfig           `yaml:"ssl"`
@@ -211,11 +202,6 @@ func applyDefaults(cfg *Config) {
 		cfg.Server.Admin.Email = "admin@" + cfg.Server.FQDN
 	}
 
-	// Session defaults
-	if cfg.Server.Session.Timeout == 0 {
-		cfg.Server.Session.Timeout = 3600
-	}
-
 	// Rate limit defaults
 	if cfg.Server.RateLimit.Requests == 0 {
 		cfg.Server.RateLimit.Requests = 120
@@ -313,8 +299,6 @@ func getDefaultConfig() *Config {
 			Admin: AdminConfig{
 				Email:    "admin@" + hostname,
 				Username: "administrator",
-				Password: "", // Auto-generated on first run
-				Token:    "", // Auto-generated on first run
 			},
 			RateLimit: RateLimitConfig{
 				Enabled:  true,
