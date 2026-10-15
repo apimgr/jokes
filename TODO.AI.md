@@ -1,63 +1,28 @@
-# TODO.AI.md
+# Remaining implementation work
 
-## Web UI — missing page content templates
+## Product data provenance and completeness
 
-`src/web/templates/` only defines `base.html`, `header.html`, `nav.html`,
-`footer.html`, and `index.html` (which supplies the `content` block used by
-`base.html`). The following handlers in `src/web/handlers.go` render template
-names that have no matching `{{define}}` block anywhere in the embedded
-template set, so on gin v1.10.0 (which pushes render errors to `c.Errors`
-instead of panicking) they currently return `200 OK` with an empty body:
+- The embedded dataset contains 5,160 single-part entries across 16 categories. It has no setup/delivery records, so the two-part content requirement cannot be completed without a vetted dataset and provenance/license terms. Do not generate or relabel joke text to fill this gap.
+- Confirm and document the dataset source and item-level redistribution terms. The repository MIT license covers the application source but does not establish rights to the embedded joke content.
 
-- `ServeBrowse` — renders `browse.html`
-- `ServeRandom` — renders `random.html`
-- `ServeCategories` — renders `categories.html`
-- `ServeAPIDocs` — renders `api-docs.html`
+## GraphQL correctness
 
-Add real `{{define "content"}}` templates for these four pages (or a
-per-page content block wired through `base.html`) so the routes serve
-actual page content instead of a blank 200 response. Covered by
-`TestServeBrowse`/`TestServeRandom`/`TestServeCategories`/`TestServeAPIDocs`
-in `src/web/handlers_test.go`, which currently assert the (broken) status
-quo — update those assertions once real templates are added.
+- Replace `executeGraphQL`'s substring-based query handling with a standards-compliant GraphQL parser/executor using `src/graphql/schema.go` and `src/graphql/resolver.go`. The current endpoint only recognizes a few field-name substrings, ignores most arguments and selection sets, and can return incorrect data for valid multi-field queries. Preserve the no-external-runtime-service requirement.
+- Add integration coverage for query validation, variables, selected fields, category filtering, pagination, and malformed requests after the parser/executor is implemented.
 
-## Missing HTML admin dashboard route
+## Client and operator features required by AI.md
 
-`src/routes/routes.go` registers no `/admin/dashboard` (or any other)
-protected admin HTML route — only the JSON API admin group under
-`/api/v1/admin/*` (bearer-token protected) and the standalone
-`ServeAdminLogin`/`HandleAdminLogin` HTML handlers exist, and neither is
-wired into `SetupRoutes`. A GET to `/admin/dashboard` currently falls
-through to the custom 404 handler. If a protected HTML admin dashboard is
-intended, add the route (with session/cookie auth) and register it in
-`SetupRoutes`.
+- Complete the server CLI standard flags and output behavior (`--debug`, `--color auto|yes|no`, and `NO_COLOR`) required by AI.md.
+- Complete the CLI client requirements in AI.md PART 32: user-scoped `cli.yml` configuration, server profiles and selection, interactive TUI, completions/man page, and full parity with supported read-only API features.
+- Replace the unimplemented backup, restore, update, maintenance-mode persistence, and configuration-save command responses in `src/main.go`, or remove those commands if they are not part of the project scope under AI.md.
+- Either implement actual scheduled work or keep scheduler and notification scheduling disabled and remove the no-op task callbacks. Certificate renewal and notifications are not part of IDEA.md's external-service-free product scope.
 
-## CasjaysDev Go Linting — Pre-existing Issues
+## Dataset schema and API docs
 
-19 convention violations found (not introduced by current CI-fix diff):
+- Add source-backed two-part records and update the embedded data model only when content provenance is established.
+- Keep `src/swagger/swagger.go` aligned with handler behavior; the current generated spec still needs schema examples, complete query parameters, and response/error definitions.
 
-### Build & Docker (4 issues)
-- Makefile lines 41, 50: `go build` missing inline `-buildvcs=false` flag
-- Makefile lines 41, 50: direct host builds bypass Docker — must use container via Make
-- Makefile line 100: `go test ./...` run on host — must use `make test` (Docker)
+## Packaging and release integration
 
-### Makefile Configuration (5 issues)
-- Makefile line 4: `PROJECT_NAME` hardcoded "jokes" — infer from git remote
-- Makefile line 5: `ORG` hardcoded "apimgr" — infer from git remote
-- Makefile: missing required `dev` target
-- Makefile line 17: `-trimpath` missing from LDFLAGS
-- Makefile line 17: LDFLAGS use wrong variable names (`VERSION`→`Version`, `BUILD_TIME`→`BuildEpoch`, `GIT_COMMIT`→`CommitID`)
-
-### CLI Flags (3 issues)
-- src/main.go: missing `-h` short flag (only `--help`)
-- src/main.go: missing `--debug` flag
-- src/main.go: missing `--color` flag with values auto/yes/no (default auto)
-
-### Output & Logging (1 issue)
-- src/main.go: emoji output not gated on `NO_COLOR` env var (multiple lines with embedded emojis)
-
-### Directory Layout (4 issues)
-- src/handlers/ → must rename to singular `src/handler/`
-- src/models/ → must rename to singular `src/model/`
-- src/routes/ → must rename to singular `src/route/`
-- src/paths/ → must rename to singular `src/path/`
+- Update and reconcile installer scripts and release workflows with the server and CLI binary names produced by the Makefile (`jokes` and `jokes-cli`) and the actual release archive layout.
+- Configure CI image annotations/labels and exercise the production/development Docker builds through the primary agent's validation workflow.

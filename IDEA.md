@@ -56,8 +56,8 @@ There are no user roles. All endpoints are public and require no authentication.
 
 | Field | Type | Sensitivity |
 |-------|------|-------------|
-| `id` | string — unique identifier | Public |
-| `category` | string — category name | Public |
+| `id` | integer — unique identifier from the curated dataset | Public |
+| `categories` | string array — category names | Public |
 | `type` | string — `single` or `twopart` | Public |
 | `joke` | string — full joke text (single-type only) | Public |
 | `setup` | string — setup line (twopart only) | Public |
