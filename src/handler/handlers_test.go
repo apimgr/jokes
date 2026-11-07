@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/apimgr/jokes/src/models"
+	models "github.com/apimgr/jokes/src/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -164,23 +164,12 @@ func TestGetRandomJoke(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid category value falls back to all jokes excluding explicit", func(t *testing.T) {
+	t.Run("invalid category value returns a validation error", func(t *testing.T) {
 		c, w := newTestContext(http.MethodGet, "/api/v1/jokes/random?category=bogus", nil)
 		GetRandomJoke(c)
 
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusOK, w.Body.String())
-		}
-		resp := decodeResponse(t, w)
-		value, ok := resp.Value.(map[string]interface{})
-		if !ok {
-			t.Fatalf("Value is not a joke object: %#v", resp.Value)
-		}
-		cats, _ := value["categories"].([]interface{})
-		for _, cat := range cats {
-			if cat == "explicit" {
-				t.Error("explicit joke should have been excluded by default")
-			}
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusBadRequest, w.Body.String())
 		}
 	})
 }
@@ -563,55 +552,5 @@ func TestServeMetrics(t *testing.T) {
 	}
 	if !bytes.Contains(w.Body.Bytes(), []byte("jokes_total 3")) {
 		t.Errorf("metrics body missing jokes_total: %s", w.Body.String())
-	}
-}
-
-func TestBearerTokenMiddleware(t *testing.T) {
-	tests := []struct {
-		name       string
-		authHeader string
-		wantAbort  bool
-		wantStatus int
-	}{
-		{"missing header", "", true, http.StatusUnauthorized},
-		{"missing Bearer prefix", "Token abc123", true, http.StatusUnauthorized},
-		{"empty token after Bearer", "Bearer ", true, http.StatusUnauthorized},
-		{"valid non-empty token", "Bearer abc123", false, http.StatusOK},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c, w := newTestContext(http.MethodGet, "/api/v1/admin/stats", nil)
-			if tt.authHeader != "" {
-				c.Request.Header.Set("Authorization", tt.authHeader)
-			}
-			BearerTokenMiddleware()(c)
-
-			if c.IsAborted() != tt.wantAbort {
-				t.Errorf("IsAborted() = %v, want %v", c.IsAborted(), tt.wantAbort)
-			}
-			if tt.wantAbort && w.Code != tt.wantStatus {
-				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
-			}
-		})
-	}
-}
-
-func TestGetAdminConfig(t *testing.T) {
-	c, w := newTestContext(http.MethodGet, "/api/v1/admin/config", nil)
-	GetAdminConfig(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-}
-
-func TestGetAdminStats(t *testing.T) {
-	loadTestJokes(t)
-	c, w := newTestContext(http.MethodGet, "/api/v1/admin/stats", nil)
-	GetAdminStats(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 }

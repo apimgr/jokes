@@ -3,7 +3,7 @@ package graphql
 import (
 	"strings"
 
-	"github.com/apimgr/jokes/src/models"
+	models "github.com/apimgr/jokes/src/model"
 )
 
 type Resolver struct{}
@@ -22,46 +22,21 @@ func (r *Resolver) RandomJoke(args struct {
 	Exclude  *string
 	LimitTo  *string
 }) *JokeResolver {
-	var jokes []models.Joke
-
-	// Handle limitTo
-	if args.LimitTo != nil {
-		limitToCategories := parseCategoryList(*args.LimitTo)
-		jokes = models.GetAllJokes()
-		jokes = models.FilterJokesByCategories(jokes, limitToCategories, nil)
-	} else if args.Category != nil && *args.Category != "" {
+	jokes := models.GetAllJokes()
+	if args.Category != nil && *args.Category != "" {
 		jokes = models.GetJokesByCategory(*args.Category)
-	} else {
-		jokes = models.GetAllJokes()
 	}
-
-	// Handle exclude
+	if args.LimitTo != nil && *args.LimitTo != "" {
+		jokes = models.FilterJokesByCategories(jokes, parseCategoryList(*args.LimitTo), nil)
+	}
 	if args.Exclude != nil && *args.Exclude != "" {
-		excludeCategories := strings.Split(*args.Exclude, ",")
-		for i := range excludeCategories {
-			excludeCategories[i] = strings.TrimSpace(excludeCategories[i])
-		}
-		jokes = models.FilterJokesByCategories(jokes, nil, excludeCategories)
+		jokes = models.FilterJokesByCategories(jokes, nil, splitCategories(*args.Exclude))
 	}
-
-	if len(jokes) == 0 {
+	selected := models.RandomJokesFrom(jokes, 1)
+	if len(selected) == 0 {
 		return nil
 	}
-
-	// Get random joke from filtered list
-	randomJokes := models.GetRandomJokes(1)
-	if len(randomJokes) > 0 {
-		// Filter the random joke as well
-		if args.Exclude != nil || args.LimitTo != nil {
-			filtered := models.FilterJokesByCategories(randomJokes, nil, nil)
-			if len(filtered) > 0 {
-				return &JokeResolver{joke: &filtered[0]}
-			}
-		}
-		return &JokeResolver{joke: &randomJokes[0]}
-	}
-
-	return nil
+	return &JokeResolver{joke: &selected[0]}
 }
 
 func (r *Resolver) RandomJokes(args struct {
@@ -69,6 +44,13 @@ func (r *Resolver) RandomJokes(args struct {
 	Exclude *string
 	LimitTo *string
 }) *[]*JokeResolver {
+	jokes := models.GetAllJokes()
+	if args.LimitTo != nil && *args.LimitTo != "" {
+		jokes = models.FilterJokesByCategories(jokes, parseCategoryList(*args.LimitTo), nil)
+	}
+	if args.Exclude != nil && *args.Exclude != "" {
+		jokes = models.FilterJokesByCategories(jokes, nil, splitCategories(*args.Exclude))
+	}
 	count := int(args.Count)
 	if count < 1 {
 		count = 1
@@ -76,24 +58,7 @@ func (r *Resolver) RandomJokes(args struct {
 	if count > 100 {
 		count = 100
 	}
-
-	jokes := models.GetRandomJokes(count)
-
-	// Handle limitTo
-	if args.LimitTo != nil && *args.LimitTo != "" {
-		limitToCategories := parseCategoryList(*args.LimitTo)
-		jokes = models.FilterJokesByCategories(jokes, limitToCategories, nil)
-	}
-
-	// Handle exclude
-	if args.Exclude != nil && *args.Exclude != "" {
-		excludeCategories := strings.Split(*args.Exclude, ",")
-		for i := range excludeCategories {
-			excludeCategories[i] = strings.TrimSpace(excludeCategories[i])
-		}
-		jokes = models.FilterJokesByCategories(jokes, nil, excludeCategories)
-	}
-
+	jokes = models.RandomJokesFrom(jokes, count)
 	resolvers := make([]*JokeResolver, len(jokes))
 	for i := range jokes {
 		resolvers[i] = &JokeResolver{joke: &jokes[i]}
@@ -160,6 +125,24 @@ func (r *JokeResolver) Joke() string {
 	return r.joke.Joke
 }
 
+func (r *JokeResolver) Type() string {
+	return r.joke.Type
+}
+
+func (r *JokeResolver) Setup() *string {
+	if r.joke.Setup == "" {
+		return nil
+	}
+	return &r.joke.Setup
+}
+
+func (r *JokeResolver) Delivery() *string {
+	if r.joke.Delivery == "" {
+		return nil
+	}
+	return &r.joke.Delivery
+}
+
 func (r *JokeResolver) Categories() *[]string {
 	return &r.joke.Categories
 }
@@ -197,6 +180,17 @@ func (r *CategoryStatsResolver) Count() int32 {
 }
 
 // Helper functions
+func splitCategories(value string) []string {
+	categories := strings.Split(strings.Trim(value, "[]"), ",")
+	result := make([]string, 0, len(categories))
+	for _, category := range categories {
+		if category = strings.TrimSpace(category); category != "" {
+			result = append(result, category)
+		}
+	}
+	return result
+}
+
 func parseCategoryList(limitTo string) []string {
 	limitTo = strings.Trim(limitTo, "[]")
 	limitTo = strings.TrimSpace(limitTo)

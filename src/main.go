@@ -9,14 +9,15 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/apimgr/jokes/src/config"
-	"github.com/apimgr/jokes/src/models"
-	"github.com/apimgr/jokes/src/paths"
-	"github.com/apimgr/jokes/src/routes"
+	models "github.com/apimgr/jokes/src/model"
+	paths "github.com/apimgr/jokes/src/path"
+	routes "github.com/apimgr/jokes/src/route"
 	"github.com/apimgr/jokes/src/scheduler"
 	"github.com/apimgr/jokes/src/service"
 	"github.com/apimgr/jokes/src/web"
@@ -33,6 +34,7 @@ const VERSION = "1.0.0"
 var (
 	Version      string
 	CommitID     string
+	BuildDate    string
 	BuildEpoch   string
 	OfficialSite string
 )
@@ -59,12 +61,16 @@ var (
 	maintenanceCmd string
 	modeFlag       string
 	updateCmd      string
+	debugFlag      bool
+	colorFlag      string
 	cfg            *config.Config
 )
 
 func init() {
 	flag.BoolVar(&showHelp, "help", false, "Show help")
+	flag.BoolVar(&showHelp, "h", false, "Show help")
 	flag.BoolVar(&showVersion, "version", false, "Show version")
+	flag.BoolVar(&showVersion, "v", false, "Show version")
 	flag.BoolVar(&showStatus, "status", false, "Show status and health, exit with code")
 	flag.StringVar(&dataDir, "data", "", "Set data dir")
 	flag.StringVar(&configDir, "config", "", "Set the config dir")
@@ -73,11 +79,32 @@ func init() {
 	flag.StringVar(&serviceCmd, "service", "", "Service command: start, stop, restart, reload, --install, --uninstall, --disable, --help")
 	flag.StringVar(&maintenanceCmd, "maintenance", "", "Maintenance command: backup, restore, update, mode, setup [args]")
 	flag.StringVar(&modeFlag, "mode", "", "Application mode: production, development")
+	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
+	flag.StringVar(&colorFlag, "color", "auto", "Color output: auto, yes, no")
 	flag.StringVar(&updateCmd, "update", "", "Update commands: check, yes, branch {stable|beta|daily}")
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "help" {
+		printHelp()
+		os.Exit(0)
+	}
 	flag.Parse()
+
+	switch strings.ToLower(colorFlag) {
+	case "auto":
+	case "yes":
+		os.Unsetenv("NO_COLOR")
+	case "no":
+		os.Setenv("NO_COLOR", "1")
+	default:
+		fmt.Fprintf(os.Stderr, "invalid --color value %q; choose auto, yes, or no\n", colorFlag)
+		os.Exit(64)
+	}
+	if debugFlag {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		os.Setenv("DEBUG", "1")
+	}
 
 	// Handle --help
 	if showHelp {
@@ -121,11 +148,19 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Apply an explicit config directory before configuration is resolved.
+	if configDir != "" {
+		if err := os.Setenv("CONFIG_DIR", configDir); err != nil {
+			log.Printf("set config directory: %v", err)
+			os.Exit(1)
+		}
+	}
+
 	// Load configuration
 	var err error
 	cfg, err = config.LoadConfig()
 	if err != nil {
-		log.Fatalf("❌ Failed to load configuration: %v", err)
+		exitWithErrorf("❌ Failed to load configuration: %v", err)
 	}
 
 	// Override config with CLI flags if provided
@@ -148,20 +183,26 @@ func main() {
 		}
 	}
 
-	// Determine jokes data file path
-	jokesPath := getJokesPath(dataDir)
-	log.Printf("📚 Loading jokes from: %s", jokesPath)
-
-	// Load jokes data
-	if err := models.LoadJokes(jokesPath); err != nil {
-		log.Fatalf("❌ Failed to load jokes: %v", err)
+	// Use the compiled curated dataset by default; an explicit data directory
+	// remains available for operators who maintain a private dataset.
+	var loadErr error
+	if dataDir == "" {
+		log.Print("Loading embedded jokes dataset")
+		loadErr = models.LoadEmbeddedJokes()
+	} else {
+		jokesPath := getJokesPath(dataDir)
+		log.Printf("Loading jokes from: %s", jokesPath)
+		loadErr = models.LoadJokes(jokesPath)
+	}
+	if loadErr != nil {
+		exitWithErrorf("Failed to load jokes: %v", loadErr)
 	}
 
 	log.Printf("🎉 Loaded %d jokes from database", models.GetJokesCount())
 
 	// Initialize web templates
 	if err := web.InitTemplates(); err != nil {
-		log.Fatalf("❌ Failed to load templates: %v", err)
+		exitWithErrorf("❌ Failed to load templates: %v", err)
 	}
 
 	log.Printf("🎨 Templates loaded successfully")
@@ -171,11 +212,15 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Create router
-	router := gin.Default()
+	// Recover at the outermost middleware boundary so a handler panic still
+	// produces a sanitized response instead of an empty connection failure.
+	router := gin.New()
+	router.Use(guaranteedRecovery())
+	router.Use(gin.Logger())
 
 	// Setup routes
-	routes.SetupRoutes(router, cfg.Server.RateLimit.Requests)
+	web.SetVersion(effectiveVersion())
+	routes.SetupRoutesWithLimits(router, cfg.Server.RateLimit.Enabled, cfg.Server.RateLimit.Requests, time.Duration(cfg.Server.RateLimit.Window)*time.Second)
 
 	// Setup web routes
 	setupWebRoutes(router)
@@ -209,11 +254,17 @@ func main() {
 	// Create HTTP server for graceful shutdown
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Address, cfg.Server.Port)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	// Start server in goroutine
+	serverErrors := make(chan error, 1)
 	go func() {
 		log.Printf("🚀 JOKES API server starting on %s", addr)
 		log.Printf("🏥 Health check: http://%s/healthz", addr)
@@ -221,7 +272,7 @@ func main() {
 		log.Printf("🌐 Web interface: http://%s/", addr)
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Failed to start server: %v", err)
+			serverErrors <- err
 		}
 	}()
 
@@ -229,8 +280,20 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	sig := <-quit
-	log.Printf("🛑 Received signal %v, shutting down gracefully...", sig)
+	var sig os.Signal
+	select {
+	case sig = <-quit:
+		log.Printf("🛑 Received signal %v, shutting down gracefully...", sig)
+	case err := <-serverErrors:
+		log.Printf("❌ Failed to start server: %v", err)
+		if cfg.Server.Schedule.Enabled {
+			sched.Stop()
+		}
+		if cfg.Server.PIDFile {
+			paths.RemovePIDFile()
+		}
+		os.Exit(1)
+	}
 
 	// Handle SIGHUP for config reload (future use)
 	if sig == syscall.SIGHUP {
@@ -416,9 +479,28 @@ func setMaintenanceMode(mode string) {
 	// TODO: Persist maintenance mode to config/state
 }
 
+func guaranteedRecovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				log.Printf("request panic recovered: request_id=%s panic=%v\n%s", c.GetString("request_id"), recovered, debug.Stack())
+				if !c.Writer.Written() {
+					if strings.Contains(c.GetHeader("Accept"), "application/json") || strings.HasPrefix(c.Request.URL.Path, "/api/") {
+						c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"ok": false, "error": "SERVER_ERROR", "message": "Internal server error"})
+					} else {
+						c.Data(http.StatusInternalServerError, "text/html; charset=utf-8", []byte("<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>Server error</title><body><main><h1>Something went wrong</h1><p>Please try again.</p><a href=\"/\">Home</a></main></body></html>"))
+					}
+				}
+				c.Abort()
+			}
+		}()
+		c.Next()
+	}
+}
+
 func setupWebRoutes(router *gin.Engine) {
 	// Serve static files
-	router.StaticFS("/static", http.FS(web.EmbeddedFiles))
+	router.GET("/static/*filepath", web.ServeStatic)
 
 	// PWA files
 	router.GET("/manifest.json", web.ServeManifest)
@@ -429,17 +511,22 @@ func setupWebRoutes(router *gin.Engine) {
 	router.GET("/security.txt", serveSecurityTxt)
 	router.GET("/.well-known/security.txt", serveSecurityTxt)
 
+	// Public server pages
+	router.GET("/server/about", web.ServeServerInfo)
+	router.GET("/server/help", web.ServeServerInfo)
+	router.GET("/server/healthz", web.ServeServerInfo)
+	router.GET("/server/privacy", web.ServeServerInfo)
+	router.GET("/server/terms", web.ServeServerInfo)
+
 	// Web pages
 	router.GET("/", web.ServeHome)
 	router.GET("/browse", web.ServeBrowse)
+	router.GET("/search", web.ServeSearch)
 	router.GET("/random", web.ServeRandom)
 	router.GET("/categories", web.ServeCategories)
+	router.GET("/categories/:category", web.ServeCategory)
 	router.GET("/api-docs", web.ServeAPIDocs)
 
-	// Swagger redirect (legacy)
-	router.GET("/swagger", func(c *gin.Context) {
-		c.Redirect(302, "/openapi")
-	})
 }
 
 func serveRobotsTxt(c *gin.Context) {
@@ -506,6 +593,8 @@ func printHelp() {
 	fmt.Println("Flags:")
 	fmt.Println("  --help                 Show this help message")
 	fmt.Println("  --version              Show version information")
+	fmt.Println("  --debug                Enable debug logging")
+	fmt.Println("  --color auto|yes|no    Color output (NO_COLOR is honored in auto mode)")
 	fmt.Println("  --status               Show status and health, exit with code")
 	fmt.Println("  --data <dir>           Set data directory")
 	fmt.Println("  --config <dir>         Set config directory")
@@ -548,33 +637,34 @@ func checkStatus() int {
 		fmt.Printf("⚠️  Config file not found: %s\n", configPath)
 	}
 
-	// Check data file
-	jokesPath := getJokesPath(dataDir)
-	if _, err := os.Stat(jokesPath); err == nil {
-		fmt.Printf("✅ Data file: %s\n", jokesPath)
-
-		// Try to load jokes
-		if err := models.LoadJokes(jokesPath); err == nil {
-			count := models.GetJokesCount()
-			fmt.Printf("✅ Loaded %d jokes\n", count)
-			if count > 0 {
-				fmt.Println()
-				fmt.Printf("📊 Statistics:\n")
-				fmt.Printf("   Total jokes: %d\n", count)
-				fmt.Printf("   Categories: %d\n", len(models.GetCategories()))
-				fmt.Println()
-				fmt.Println("✅ Status: Healthy")
-				return 0
-			}
-		} else {
-			fmt.Printf("❌ Failed to load jokes: %v\n", err)
+	// Check that the embedded or explicitly configured dataset can be loaded.
+	var loadErr error
+	if dataDir == "" {
+		loadErr = models.LoadEmbeddedJokes()
+		fmt.Println("✅ Data source: embedded dataset")
+	} else {
+		jokesPath := getJokesPath(dataDir)
+		if _, err := os.Stat(jokesPath); err != nil {
+			fmt.Printf("❌ Data file not found: %s\n", jokesPath)
 			return 1
 		}
-	} else {
-		fmt.Printf("❌ Data file not found: %s\n", jokesPath)
+		fmt.Printf("✅ Data file: %s\n", jokesPath)
+		loadErr = models.LoadJokes(jokesPath)
+	}
+	if loadErr != nil {
+		fmt.Printf("❌ Failed to load jokes: %v\n", loadErr)
 		return 1
 	}
-
+	count := models.GetJokesCount()
+	fmt.Printf("✅ Loaded %d jokes\n", count)
+	if count == 0 {
+		fmt.Println("❌ Dataset contains no jokes")
+		return 1
+	}
+	fmt.Println()
+	fmt.Printf("📊 Statistics:\n   Total jokes: %d\n   Categories: %d\n", count, len(models.GetCategories()))
+	fmt.Println()
+	fmt.Println("✅ Status: Healthy")
 	return 0
 }
 
@@ -664,4 +754,9 @@ func runSetupWizard() {
 	}
 	fmt.Println()
 	fmt.Println("✅ Setup complete. Edit the configuration file to customize settings.")
+}
+
+func exitWithErrorf(format string, args ...any) {
+	log.Printf(format, args...)
+	os.Exit(1)
 }

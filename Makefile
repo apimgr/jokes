@@ -1,133 +1,79 @@
-.PHONY: build release docker test clean help
+.PHONY: build build-all build-host local dev release docker test check clean help
 
-# Project variables
-PROJECT_NAME := jokes
-ORG := apimgr
-VERSION := $(shell cat release.txt 2>/dev/null || echo "1.0.0")
-BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
-GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-
-# Build variables
-BUILD_DIR := ./binaries
-RELEASE_DIR := ./releases
-BINARY_NAME := $(PROJECT_NAME)
-DOCKER_IMAGE := ghcr.io/$(ORG)/$(PROJECT_NAME)
-
-# Go build flags
-LDFLAGS := -ldflags "-s -w -X main.VERSION=$(VERSION) -X main.BUILD_TIME=$(BUILD_TIME) -X main.GIT_COMMIT=$(GIT_COMMIT)"
-CGO_ENABLED := 0
-
-# Build targets
+PROJECTNAME := $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*/([^/]+)(\.git)?$$|\1|' || basename "$(PWD)")
+PROJECTORG := $(shell git remote get-url origin 2>/dev/null | sed -E 's|.*/([^/]+)/[^/]+(\.git)?$$|\1|' || basename "$(dir $(PWD))")
+VERSION ?= $(shell cat release.txt 2>/dev/null || echo "0.1.0")
+COMMIT_ID := $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
+BUILD_EPOCH := $(shell date -u +%s)
+BUILD_DATE := $(shell date -u -d @$(BUILD_EPOCH) +%Y-%m-%dT%H:%M:%SZ)
+OFFICIAL_SITE ?= https://jokes.apimgr.us
+BINDIR := binaries
+RELDIR := releases
 PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64 freebsd/arm64
 
-## build: Build all binaries for all platforms
-build: clean
-	@echo "🔨 Building $(PROJECT_NAME) v$(VERSION) for all platforms..."
-	@mkdir -p $(BUILD_DIR) $(RELEASE_DIR)
-	@$(MAKE) build-all
-	@$(MAKE) build-host
-	@echo "✅ Build complete!"
+GO_CACHE ?= $(HOME)/go/pkg/mod
+GO_BUILD ?= $(HOME)/.cache/go-build/$(PROJECTNAME)
+TMPDIR ?= /tmp
+DOCKER_MEM ?= 4g
+DOCKER_CPUS ?= 2
+GO_DOCKER := docker run --rm \
+	--name $(PROJECTNAME)-$$(tr -dc 'a-z0-9' </dev/urandom | head -c8) \
+	--memory=$(DOCKER_MEM) --cpus=$(DOCKER_CPUS) \
+	-v "$(PWD):/app" \
+	-v "$(GO_CACHE):/usr/local/share/go/pkg/mod" \
+	-v "$(GO_BUILD):/usr/local/share/go/cache" \
+	-v "$(TMPDIR)/$(PROJECTORG):/tmp/$(PROJECTORG)" \
+	-w /app -e CGO_ENABLED=0 -e GOFLAGS=-buildvcs=false \
+	casjaysdev/go:latest
+LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.CommitID=$(COMMIT_ID) -X main.BuildDate=$(BUILD_DATE) -X main.BuildEpoch=$(BUILD_EPOCH) -X main.OfficialSite=$(OFFICIAL_SITE)
 
-## build-all: Build for all platforms
+## build: Build both binaries for the required release platforms and host
+build: build-all build-host
+
+## build-all: Cross-build server and CLI for all eight supported platforms
 build-all:
-	@for platform in $(PLATFORMS); do \
-		GOOS=$$(echo $$platform | cut -d'/' -f1); \
-		GOARCH=$$(echo $$platform | cut -d'/' -f2); \
-		OUTPUT_NAME=$(BUILD_DIR)/$(BINARY_NAME)-$$GOOS-$$GOARCH; \
-		if [ "$$GOOS" = "windows" ]; then \
-			OUTPUT_NAME=$$OUTPUT_NAME.exe; \
-		fi; \
-		echo "📦 Building for $$GOOS/$$GOARCH..."; \
-		CGO_ENABLED=$(CGO_ENABLED) GOOS=$$GOOS GOARCH=$$GOARCH go build $(LDFLAGS) -o $$OUTPUT_NAME . || exit 1; \
-		if echo $$OUTPUT_NAME | grep -q "musl"; then \
-			strip $$OUTPUT_NAME 2>/dev/null || true; \
-		fi; \
-	done
+	@mkdir -p $(GO_CACHE) $(GO_BUILD) $(BINDIR) $(RELDIR)
+	@$(GO_DOCKER) sh -c 'set -eu; for platform in $(PLATFORMS); do os=$${platform%/*}; arch=$${platform#*/}; ext=""; [ "$$os" != windows ] || ext=.exe; GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o "$(BINDIR)/$(PROJECTNAME)-$$os-$$arch$$ext" ./src; GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o "$(BINDIR)/$(PROJECTNAME)-cli-$$os-$$arch$$ext" ./src/client; done'
 
-## build-host: Build for host platform
+## build-host: Build server and CLI for the current host platform
 build-host:
-	@echo "🏠 Building for host platform..."
-	@CGO_ENABLED=$(CGO_ENABLED) go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
-	@echo "✅ Host binary: $(BUILD_DIR)/$(BINARY_NAME)"
+	@mkdir -p $(GO_CACHE) $(GO_BUILD) $(BINDIR)
+	@$(GO_DOCKER) sh -c 'go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINDIR)/$(PROJECTNAME) ./src && go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINDIR)/$(PROJECTNAME)-cli ./src/client'
 
-## release: Create GitHub release with all binaries
+## local: Build server and CLI for production testing
+local: build-host
+
+## dev: Build server and CLI into a project-scoped temporary directory
+dev:
+	@mkdir -p $(GO_CACHE) $(GO_BUILD) "$(TMPDIR)/$(PROJECTORG)"
+	@$(GO_DOCKER) sh -c 'set -eu; out=$$(mktemp -d "/tmp/$(PROJECTORG)/$(PROJECTNAME)-XXXXXX"); go build -buildvcs=false -o "$$out/$(PROJECTNAME)" ./src; go build -buildvcs=false -o "$$out/$(PROJECTNAME)-cli" ./src/client; printf "%s\n" "$$out"'
+
+## release: Create versioned release archives locally without pushing or tagging
 release: build
-	@echo "🚀 Creating release v$(VERSION)..."
-	@mkdir -p $(RELEASE_DIR)
-	@cp -r $(BUILD_DIR)/* $(RELEASE_DIR)/
+	@mkdir -p $(RELDIR)
+	@tar -C $(BINDIR) -czf $(RELDIR)/$(PROJECTNAME)-$(VERSION)-binaries.tar.gz .
+	@tar --exclude=.git --exclude=binaries --exclude=releases -czf $(RELDIR)/$(PROJECTNAME)-$(VERSION)-source.tar.gz .
 
-	# Create source archive (no VCS files)
-	@tar --exclude='.git' --exclude='node_modules' --exclude='binaries' --exclude='releases' \
-		-czf $(RELEASE_DIR)/$(PROJECT_NAME)-$(VERSION)-source.tar.gz .
-
-	# Check if tag exists and delete if it does
-	@if git rev-parse v$(VERSION) >/dev/null 2>&1; then \
-		echo "🗑️  Deleting existing tag v$(VERSION)..."; \
-		git tag -d v$(VERSION); \
-		git push --delete origin v$(VERSION) 2>/dev/null || true; \
-	fi
-
-	# Create new tag
-	@git tag -a v$(VERSION) -m "Release v$(VERSION)"
-	@git push origin v$(VERSION)
-
-	# Create GitHub release
-	@if command -v gh >/dev/null 2>&1; then \
-		echo "📤 Creating GitHub release..."; \
-		gh release create v$(VERSION) $(RELEASE_DIR)/* \
-			--title "$(PROJECT_NAME) v$(VERSION)" \
-			--notes "Release v$(VERSION) - Built on $(BUILD_TIME)"; \
-	else \
-		echo "⚠️  gh CLI not found. Please install it to create GitHub releases."; \
-	fi
-
-	# Increment version
-	@$(MAKE) version-bump
-	@echo "✅ Release v$(VERSION) created!"
-
-## docker: Build and push Docker image
+## docker: Build the local container image without publishing it
 docker:
-	@echo "🐳 Building Docker image..."
-	@docker buildx build --platform linux/amd64,linux/arm64 \
-		-t $(DOCKER_IMAGE):$(VERSION) \
-		-t $(DOCKER_IMAGE):latest \
-		--push .
-	@echo "✅ Docker image pushed: $(DOCKER_IMAGE):$(VERSION)"
+	@docker buildx build --platform linux/amd64 --load --tag ghcr.io/$(PROJECTORG)/$(PROJECTNAME):$(VERSION) --file docker/Dockerfile .
 
-## test: Run all tests
+## test: Run Go vet, vulnerability checks, and the test suite in Docker
 test:
-	@echo "🧪 Running tests..."
-	@go test -v -race -coverprofile=coverage.out ./...
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Tests complete! Coverage report: coverage.html"
+	@mkdir -p $(GO_CACHE) $(GO_BUILD)
+	@$(GO_DOCKER) sh -c 'mkdir -p /tmp/$(PROJECTORG) && covdir=$$(mktemp -d /tmp/$(PROJECTORG)/$(PROJECTNAME)-XXXXXX) && trap "rm -rf $$covdir" EXIT && go vet ./... && govulncheck ./... && go test -coverprofile=$$covdir/coverage.out ./... && coverage=$$(go tool cover -func=$$covdir/coverage.out | awk "/^total:/ {gsub(/%/, \"\", \$$3); print \$$3}") && echo "Coverage: $$coverage%" && awk -v coverage="$$coverage" "BEGIN { if (coverage+0 < 60) exit 1 }"'
 
-## clean: Clean build artifacts
+## check: Run static analysis and formatting checks in Docker
+check:
+	@mkdir -p $(GO_CACHE) $(GO_BUILD)
+	@$(GO_DOCKER) sh -c 'set -e; go vet ./...; GOTOOLCHAIN=go1.26.4 staticcheck ./...; unformatted=$$(gofmt -l ./src); if [ -n "$$unformatted" ]; then printf "Unformatted Go files:\n%s\n" "$$unformatted"; exit 1; fi'
+
+## clean: Remove generated binaries, release archives, and Go cache for this project
 clean:
-	@echo "🧹 Cleaning build artifacts..."
-	@rm -rf $(BUILD_DIR) $(RELEASE_DIR)
-	@rm -f coverage.out coverage.html
-	@go clean
-	@echo "✅ Clean complete!"
+	@rm -rf -- $(BINDIR) $(RELDIR) "$(GO_BUILD)"
 
-## version-bump: Increment patch version
-version-bump:
-	@echo "📈 Incrementing version..."
-	@CURRENT_VERSION=$$(cat release.txt); \
-	MAJOR=$$(echo $$CURRENT_VERSION | cut -d'.' -f1); \
-	MINOR=$$(echo $$CURRENT_VERSION | cut -d'.' -f2); \
-	PATCH=$$(echo $$CURRENT_VERSION | cut -d'.' -f3); \
-	NEW_PATCH=$$((PATCH + 1)); \
-	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
-	echo $$NEW_VERSION > release.txt; \
-	echo "📌 Version bumped: $$CURRENT_VERSION → $$NEW_VERSION"
-
-## help: Show this help message
+## help: Show available targets
 help:
-	@echo "$(PROJECT_NAME) Makefile"
-	@echo ""
-	@echo "Usage: make [target]"
-	@echo ""
-	@echo "Targets:"
-	@sed -n 's/^##//p' $(MAKEFILE_LIST) | column -t -s ':' | sed -e 's/^/ /'
-	@echo ""
-	@echo "Version: $(VERSION)"
+	@printf '%s\n' 'Jokes Makefile' '' 'Targets:'
+	@sed -n 's/^##//p' $(MAKEFILE_LIST) | column -t -s ':' | sed 's/^/  /'
+	@printf '\nVersion: %s\n' '$(VERSION)'

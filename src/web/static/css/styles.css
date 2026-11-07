@@ -34,6 +34,25 @@
     --shadow: rgba(0, 0, 0, 0.1);
 }
 
+@media (prefers-color-scheme: light) {
+    [data-theme="auto"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e0e0e0;
+    --text-primary: #2c3e50;
+    --text-secondary: #34495e;
+    --text-muted: #7f8c8d;
+    --accent-primary: #3498db;
+    --accent-secondary: #e74c3c;
+    --accent-success: #27ae60;
+    --accent-warning: #f39c12;
+    --accent-danger: #e74c3c;
+    --accent-info: #16a085;
+    --border-color: #dcdcdc;
+    --shadow: rgba(0, 0, 0, 0.1);
+    }
+}
+
 /* Reset and Base Styles */
 * {
     margin: 0;

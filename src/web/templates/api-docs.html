@@ -1,0 +1,20 @@
+{{define "api-docs"}}
+<div class="container page-content">
+    <h2>API documentation</h2>
+    <p>All endpoints are public and read-only. JSON is returned by default; use an <code>.txt</code> suffix or <code>Accept: text/plain</code> for plain text.</p>
+    <p>There are {{.TotalJokes}} jokes in {{.TotalCategories}} categories.</p>
+    <table>
+        <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>GET</td><td><code>/api/v1/jokes/random</code></td><td>Get a random joke. Optional <code>category</code> filter.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/random/{count}</code></td><td>Get 1–100 unique random jokes.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/{id}</code></td><td>Get one joke by ID.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/all?page=1&amp;limit=25</code></td><td>Browse the paginated collection.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/search?q=...</code></td><td>Search joke text and category names.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/categories</code></td><td>List categories and counts.</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/jokes/categories/{category}</code></td><td>List jokes in a category.</td></tr>
+        </tbody>
+    </table>
+    <p><a href="/openapi">OpenAPI reference</a> · <a href="/graphql">GraphQL query form</a></p>
+</div>
+{{end}}

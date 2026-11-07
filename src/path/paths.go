@@ -1,4 +1,4 @@
-package paths
+package path
 
 import (
 	"fmt"
@@ -14,6 +14,9 @@ const (
 
 // GetDataDir returns the data directory path
 func GetDataDir() string {
+	if dataDir := os.Getenv("DATA_DIR"); dataDir != "" {
+		return filepath.Clean(dataDir)
+	}
 	if os.Geteuid() == 0 {
 		return filepath.Join("/var/lib", orgName, appName)
 	}
@@ -23,6 +26,9 @@ func GetDataDir() string {
 
 // GetConfigDir returns the config directory path
 func GetConfigDir() string {
+	if configDir := os.Getenv("CONFIG_DIR"); configDir != "" {
+		return filepath.Clean(configDir)
+	}
 	if os.Geteuid() == 0 {
 		return filepath.Join("/etc", orgName, appName)
 	}

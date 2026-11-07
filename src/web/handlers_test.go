@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/apimgr/jokes/src/models"
+	models "github.com/apimgr/jokes/src/model"
 	"github.com/gin-gonic/gin"
 )
 
@@ -63,8 +63,8 @@ func TestGetTheme(t *testing.T) {
 	}{
 		{"dark cookie", &http.Cookie{Name: "theme", Value: "dark"}, "dark"},
 		{"light cookie", &http.Cookie{Name: "theme", Value: "light"}, "light"},
-		{"no cookie", nil, "dark"},
-		{"invalid cookie value", &http.Cookie{Name: "theme", Value: "purple"}, "dark"},
+		{"no cookie", nil, "auto"},
+		{"invalid cookie value", &http.Cookie{Name: "theme", Value: "purple"}, "auto"},
 	}
 
 	for _, tt := range tests {
@@ -102,24 +102,20 @@ func TestServeHome(t *testing.T) {
 	}
 }
 
-// ServeBrowse, ServeRandom, ServeCategories, and ServeAPIDocs render template
-// names ("browse.html", "random.html", "categories.html", "api-docs.html")
-// that do not exist among the embedded templates (only base/header/nav/footer
-// and index.html define content). On gin v1.10.0, Context.Render no longer
-// panics on a render error — it pushes the error to c.Errors and calls
-// c.Abort(), leaving the already-recorded 200 status in place with an empty
-// body. These tests confirm that observed behavior; see TODO.AI.md for the
-// tracked follow-up to add real content templates for these pages.
 func TestServeBrowse(t *testing.T) {
+	loadFixture(t)
 	router := newTestRouter(t)
 	router.GET("/browse", ServeBrowse)
 
-	req := httptest.NewRequest(http.MethodGet, "/browse", nil)
+	req := httptest.NewRequest(http.MethodGet, "/browse?q=infinity", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("ServeBrowse status = %d, want %d (browse.html template not yet implemented)", w.Code, http.StatusOK)
+		t.Fatalf("ServeBrowse status = %d, want %d, body = %s", w.Code, http.StatusOK, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "counted to infinity") {
+		t.Errorf("browse results do not contain expected search match: %s", w.Body.String())
 	}
 }
 
@@ -132,12 +128,16 @@ func TestServeRandom(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("ServeRandom status = %d, want %d (random.html template not yet implemented)", w.Code, http.StatusOK)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Random joke") {
+		t.Fatalf("ServeRandom response = %d %q", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "Chuck Norris") {
+		t.Errorf("random page missing joke content: %s", w.Body.String())
 	}
 }
 
 func TestServeCategories(t *testing.T) {
+	loadFixture(t)
 	router := newTestRouter(t)
 	router.GET("/categories", ServeCategories)
 
@@ -145,12 +145,16 @@ func TestServeCategories(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("ServeCategories status = %d, want %d (categories.html template not yet implemented)", w.Code, http.StatusOK)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Categories") {
+		t.Fatalf("ServeCategories response = %d %q", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "dev") {
+		t.Errorf("categories page missing category content: %s", w.Body.String())
 	}
 }
 
 func TestServeAPIDocs(t *testing.T) {
+	loadFixture(t)
 	router := newTestRouter(t)
 	router.GET("/api-docs", ServeAPIDocs)
 
@@ -158,8 +162,8 @@ func TestServeAPIDocs(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("ServeAPIDocs status = %d, want %d (api-docs.html template not yet implemented)", w.Code, http.StatusOK)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "/api/v1/jokes/search") {
+		t.Fatalf("ServeAPIDocs response = %d %q", w.Code, w.Body.String())
 	}
 }
 
@@ -193,7 +197,7 @@ func TestServeServiceWorker(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("ServeServiceWorker status = %d, want %d", w.Code, http.StatusOK)
 	}
-	if ct := w.Header().Get("Content-Type"); ct != "application/javascript" {
+	if ct := w.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/javascript") {
 		t.Errorf("ServeServiceWorker Content-Type = %q, want application/javascript", ct)
 	}
 	if sw := w.Header().Get("Service-Worker-Allowed"); sw != "/" {

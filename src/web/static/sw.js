@@ -1,78 +1,74 @@
-// Service Worker for PWA
-const CACHE_NAME = 'jokes-api-v1';
-const urlsToCache = [
+const CACHE_VERSION = '1.0.1';
+const CACHE_NAME = `jokes-cache-v${CACHE_VERSION}`;
+const PRECACHE_ASSETS = [
   '/',
   '/static/css/styles.css',
   '/static/js/app.js',
-  '/manifest.json',
-  '/static/images/icon-192.png',
-  '/static/images/icon-512.png'
+  '/static/images/icon.svg',
+  '/manifest.json'
 ];
 
-// Install event - cache static assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('✅ Cache opened');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys()
+      .then(keys => Promise.all(keys
+        .filter(key => key.startsWith('jokes-cache-') && key !== CACHE_NAME)
+        .map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
           return response;
-        }
+        })
+        .catch(async () =>
+          (await caches.match(request)) || offlineFallbackResponse()
+        )
+    );
+    return;
+  }
 
-        return fetch(event.request).then(
-          response => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache API responses for offline access
-            if (event.request.url.includes('/api/v1/')) {
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                });
-            }
-
-            return response;
-          }
-        );
-      })
-      .catch(() => {
-        // Return offline page if available
-        return caches.match('/');
-      })
-  );
+  if (url.pathname.startsWith('/static/')) {
+    event.respondWith(
+      caches.match(request)
+        .then(cached => cached || fetch(request).then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          return response;
+        }))
+        .catch(() => new Response('', { status: 504, statusText: 'Gateway Timeout' }))
+    );
+  }
 });
+
+function offlineFallbackResponse() {
+  return new Response(
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>Offline</title></head><body><main><h1>You are offline</h1>'
+      + '<p>This page could not be loaded and no cached copy is available. '
+      + 'Check your connection and try again.</p></main></body></html>',
+    { status: 503, statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}

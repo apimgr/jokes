@@ -26,8 +26,9 @@
                 <h3>😄 Random Joke</h3>
                 <button id="new-joke-btn" class="btn btn-primary">Get New Joke</button>
             </div>
+            {{if .RandomJoke}}
             <div class="joke-content" id="joke-content">
-                <p class="joke-text">{{.RandomJoke.Joke}}</p>
+                <p class="joke-text">{{if eq .RandomJoke.Type "twopart"}}{{.RandomJoke.Setup}}<br>{{.RandomJoke.Delivery}}{{else}}{{.RandomJoke.Joke}}{{end}}</p>
                 <div class="joke-meta">
                     <span class="joke-id">ID: {{.RandomJoke.ID}}</span>
                     <div class="joke-categories">
@@ -37,6 +38,7 @@
                     </div>
                 </div>
             </div>
+            {{else}}<p>No joke is available.</p>{{end}}
         </div>
     </section>
 

@@ -115,24 +115,27 @@ const themeToggle = document.getElementById('theme-toggle');
 const themeIcon = document.querySelector('.theme-icon');
 const body = document.body;
 
-const savedTheme = localStorage.getItem('theme') || 'dark';
+const savedTheme = localStorage.getItem('theme') || body.getAttribute('data-theme') || 'auto';
+const themeOptions = ['auto', 'dark', 'light'];
 body.setAttribute('data-theme', savedTheme);
 updateThemeIcon(savedTheme);
 
 themeToggle?.addEventListener('click', () => {
     const currentTheme = body.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const currentIndex = themeOptions.indexOf(currentTheme);
+    const newTheme = themeOptions[(currentIndex + 1) % themeOptions.length];
 
     body.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    document.cookie = `theme=${newTheme}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
     updateThemeIcon(newTheme);
 
-    toastSystem.show(`Switched to ${newTheme} theme`, 'success', 2000);
+    toastSystem.show(`Theme: ${newTheme}`, 'success', 2000);
 });
 
 function updateThemeIcon(theme) {
     if (themeIcon) {
-        themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        themeIcon.textContent = theme === 'dark' ? '☀️' : theme === 'light' ? '🌙' : '🖥️';
     }
 }
 
@@ -172,7 +175,7 @@ newJokeBtn?.addEventListener('click', async () => {
         if (data.type === 'success' && data.value) {
             const joke = data.value;
             jokeContent.innerHTML = `
-                <p class="joke-text">${escapeHtml(joke.joke)}</p>
+                <p class="joke-text">${escapeHtml(joke.type === 'twopart' ? `${joke.setup}\n${joke.delivery}` : joke.joke).replaceAll('\n', '<br>')}</p>
                 <div class="joke-meta">
                     <span class="joke-id">ID: ${joke.id}</span>
                     <div class="joke-categories">

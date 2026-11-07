@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -262,6 +263,9 @@ func applyDefaults(cfg *Config) {
 }
 
 func getConfigPath() string {
+	if configDir := strings.TrimSpace(os.Getenv("CONFIG_DIR")); configDir != "" {
+		return filepath.Join(configDir, "server.yml")
+	}
 	// Check if running as root (UID 0) or escalated
 	if os.Geteuid() == 0 {
 		return "/etc/apimgr/jokes/server.yml"

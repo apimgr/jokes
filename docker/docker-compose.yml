@@ -1,21 +1,35 @@
 name: jokes
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "1"
+
 services:
   jokes:
     image: ghcr.io/apimgr/jokes:latest
-    container_name: jokes
-    restart: unless-stopped
+    container_name: jokes-app
+    hostname: jokes
+    restart: always
+    pull_policy: always
+    logging: *default-logging
     environment:
-      # Hardcoded with sane defaults - NO .env files
-      - MODE=production
-      - TZ=America/New_York
-      # ENABLE_TOR=true is default, no need to specify
-    ports:
-      # Production: bound to Docker bridge only
-      - "172.17.0.1:64580:80"
+      PORT: 80
+      TZ: ${TZ:-America/New_York}
+      CONFIG_DIR: /config/jokes
+      DATA_DIR: /data/jokes
     volumes:
-      - ./rootfs/config/jokes:/config
-      - ./rootfs/data/jokes:/data
+      - ./volumes/config:/config
+      - ./volumes/data:/data
+    ports:
+      - "172.17.0.1:64580:80"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/jokes", "--status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     networks:
       - jokes
 

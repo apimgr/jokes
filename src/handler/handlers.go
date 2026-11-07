@@ -1,12 +1,13 @@
-package handlers
+package handler
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/apimgr/jokes/src/models"
+	models "github.com/apimgr/jokes/src/model"
 	"github.com/apimgr/jokes/src/swagger"
 	"github.com/gin-gonic/gin"
 )
@@ -71,152 +72,88 @@ func HealthCheckJSON(c *gin.Context) {
 
 // GetRandomJoke returns a random joke
 func GetRandomJoke(c *gin.Context) {
-	firstName := c.Query("firstName")
-	lastName := c.Query("lastName")
-	category := c.Query("category")
-	exclude := c.Query("exclude")
-	limitTo := c.Query("limitTo")
-
-	var jokes []models.Joke
-
-	// Handle limitTo parameter
-	if limitTo != "" {
-		limitToCategories := parseCategoryList(limitTo)
-		if !validateCategories(c, limitToCategories) {
-			return
-		}
-		jokes = models.GetAllJokes()
-		jokes = models.FilterJokesByCategories(jokes, limitToCategories, nil)
-		if len(jokes) == 0 {
-			c.JSON(http.StatusNotFound, Response{
-				Type:  "error",
-				Value: "No jokes found for the specified limitTo categories",
-			})
-			return
-		}
-	} else if category != "" {
-		if !models.IsCategoryValid(category) {
-			jokes = models.GetAllJokes()
-			if exclude == "" {
-				exclude = "explicit"
-			} else if !strings.Contains(exclude, "explicit") {
-				exclude += ",explicit"
-			}
-		} else {
-			jokes = models.GetJokesByCategory(category)
-		}
-	} else {
-		jokes = models.GetAllJokes()
-	}
-
-	// Handle exclude parameter
-	if exclude != "" {
-		excludeCategories := strings.Split(exclude, ",")
-		for i := range excludeCategories {
-			excludeCategories[i] = strings.TrimSpace(excludeCategories[i])
-		}
-		if !validateCategories(c, excludeCategories) {
-			return
-		}
-		jokes = models.FilterJokesByCategories(jokes, nil, excludeCategories)
-	}
-
-	if len(jokes) == 0 {
-		c.JSON(http.StatusNotFound, Response{
-			Type:  "error",
-			Value: "No jokes found matching the criteria",
-		})
+	jokes, ok := jokeCandidates(c)
+	if !ok {
 		return
 	}
-
-	// Pick random joke from filtered list
-	joke := jokes[0]
-	if len(jokes) > 1 {
-		jokes = models.GetRandomJokes(1)
-		if len(jokes) > 0 {
-			// Filter again to ensure it matches criteria
-			filtered := models.FilterJokesByCategories(jokes, nil, strings.Split(exclude, ","))
-			if len(filtered) > 0 {
-				joke = filtered[0]
-			}
-		}
+	selected := models.RandomJokesFrom(jokes, 1)
+	if len(selected) == 0 {
+		c.JSON(http.StatusNotFound, Response{Type: "error", Value: "No jokes found matching the criteria"})
+		return
 	}
-
-	// Replace names if requested
-	if firstName != "" || lastName != "" {
-		joke.Joke = models.ReplaceNameInJoke(joke.Joke, firstName, lastName)
-	}
-
-	c.JSON(http.StatusOK, Response{
-		Type:  "success",
-		Value: joke,
-	})
+	joke := replaceJokeNames(selected[0], c.Query("firstName"), c.Query("lastName"))
+	c.JSON(http.StatusOK, Response{Type: "success", Value: joke})
 }
 
 // GetRandomJokes returns multiple random jokes
 func GetRandomJokes(c *gin.Context) {
-	countStr := c.Param("count")
-	count, err := strconv.Atoi(countStr)
+	count, err := strconv.Atoi(c.Param("count"))
 	if err != nil || count < 1 || count > 100 {
-		c.JSON(http.StatusBadRequest, Response{
-			Type:  "error",
-			Value: "Count must be a number between 1 and 100",
-		})
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "Count must be a number between 1 and 100"})
 		return
 	}
-
-	firstName := c.Query("firstName")
-	lastName := c.Query("lastName")
-	exclude := c.Query("exclude")
-	limitTo := c.Query("limitTo")
-
-	jokes := models.GetRandomJokes(count * 2) // Get extra for filtering
-
-	// Handle limitTo parameter
-	if limitTo != "" {
-		limitToCategories := parseCategoryList(limitTo)
-		if !validateCategories(c, limitToCategories) {
-			return
-		}
-		jokes = models.FilterJokesByCategories(jokes, limitToCategories, nil)
+	jokes, ok := jokeCandidates(c)
+	if !ok {
+		return
 	}
-
-	// Handle exclude parameter
-	if exclude != "" {
-		excludeCategories := strings.Split(exclude, ",")
-		for i := range excludeCategories {
-			excludeCategories[i] = strings.TrimSpace(excludeCategories[i])
-		}
-		if !validateCategories(c, excludeCategories) {
-			return
-		}
-		jokes = models.FilterJokesByCategories(jokes, nil, excludeCategories)
+	jokes = models.RandomJokesFrom(jokes, count)
+	for i := range jokes {
+		jokes[i] = replaceJokeNames(jokes[i], c.Query("firstName"), c.Query("lastName"))
 	}
-
 	if len(jokes) == 0 {
-		c.JSON(http.StatusNotFound, Response{
-			Type:  "error",
-			Value: "No jokes found matching the criteria",
-		})
+		c.JSON(http.StatusNotFound, Response{Type: "error", Value: "No jokes found matching the criteria"})
 		return
 	}
+	c.JSON(http.StatusOK, Response{Type: "success", Value: jokes})
+}
 
-	// Limit to requested count
-	if len(jokes) > count {
-		jokes = jokes[:count]
+func jokeCandidates(c *gin.Context) ([]models.Joke, bool) {
+	jokes := models.GetAllJokes()
+	category := strings.TrimSpace(c.Query("category"))
+	if category != "" {
+		if !validateCategories(c, []string{category}) {
+			return nil, false
+		}
+		jokes = models.GetJokesByCategory(category)
 	}
+	limitTo := strings.TrimSpace(c.Query("limitTo"))
+	if limitTo != "" {
+		include := parseCategoryList(limitTo)
+		if !validateCategories(c, include) {
+			return nil, false
+		}
+		jokes = models.FilterJokesByCategories(jokes, include, nil)
+	}
+	excludeValue := strings.TrimSpace(c.Query("exclude"))
+	if excludeValue != "" {
+		exclude := splitCategoryList(excludeValue)
+		if !validateCategories(c, exclude) {
+			return nil, false
+		}
+		jokes = models.FilterJokesByCategories(jokes, nil, exclude)
+	}
+	return jokes, true
+}
 
-	// Replace names if requested
-	if firstName != "" || lastName != "" {
-		for i := range jokes {
-			jokes[i].Joke = models.ReplaceNameInJoke(jokes[i].Joke, firstName, lastName)
+func splitCategoryList(value string) []string {
+	values := strings.Split(strings.Trim(value, "[]"), ",")
+	result := make([]string, 0, len(values))
+	for _, item := range values {
+		if item = strings.TrimSpace(item); item != "" {
+			result = append(result, item)
 		}
 	}
+	return result
+}
 
-	c.JSON(http.StatusOK, Response{
-		Type:  "success",
-		Value: jokes,
-	})
+func replaceJokeNames(joke models.Joke, firstName, lastName string) models.Joke {
+	if firstName == "" && lastName == "" {
+		return joke
+	}
+	joke.Joke = models.ReplaceNameInJoke(joke.Joke, firstName, lastName)
+	joke.Setup = models.ReplaceNameInJoke(joke.Setup, firstName, lastName)
+	joke.Delivery = models.ReplaceNameInJoke(joke.Delivery, firstName, lastName)
+	return joke
 }
 
 // GetJokeByID returns a specific joke by ID
@@ -239,14 +176,6 @@ func GetJokeByID(c *gin.Context) {
 		return
 	}
 
-	if id > models.GetJokesCount() {
-		c.JSON(http.StatusNotFound, Response{
-			Type:  "error",
-			Value: "Joke ID " + idStr + " not found. Valid range: 1-" + strconv.Itoa(models.GetJokesCount()),
-		})
-		return
-	}
-
 	joke := models.GetJokeByID(id)
 	if joke == nil {
 		c.JSON(http.StatusNotFound, Response{
@@ -259,13 +188,10 @@ func GetJokeByID(c *gin.Context) {
 	firstName := c.Query("firstName")
 	lastName := c.Query("lastName")
 
-	if firstName != "" || lastName != "" {
-		joke.Joke = models.ReplaceNameInJoke(joke.Joke, firstName, lastName)
-	}
-
+	updated := replaceJokeNames(*joke, firstName, lastName)
 	c.JSON(http.StatusOK, Response{
 		Type:  "success",
-		Value: joke,
+		Value: updated,
 	})
 }
 
@@ -275,6 +201,17 @@ func GetAllJokes(c *gin.Context) {
 	lastName := c.Query("lastName")
 	exclude := c.Query("exclude")
 	limitTo := c.Query("limitTo")
+	query := strings.TrimSpace(c.Query("q"))
+	if len(query) > 200 {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "q must be 200 characters or fewer"})
+		return
+	}
+	page, pageOK := boundedIntQuery(c, "page", 1, 1, 1_000_000)
+	limit, limitOK := boundedIntQuery(c, "limit", 25, 1, 100)
+	if !pageOK || !limitOK {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "page must be positive and limit must be between 1 and 100"})
+		return
+	}
 
 	jokes := models.GetAllJokes()
 
@@ -298,11 +235,14 @@ func GetAllJokes(c *gin.Context) {
 	}
 
 	jokes = models.FilterJokesByCategories(jokes, limitToCategories, excludeCategories)
+	jokes = models.SearchJokes(jokes, query)
+	total := len(jokes)
+	jokes = models.Paginate(jokes, (page-1)*limit, limit)
 
 	// Replace names if requested
 	if firstName != "" || lastName != "" {
 		for i := range jokes {
-			jokes[i].Joke = models.ReplaceNameInJoke(jokes[i].Joke, firstName, lastName)
+			jokes[i] = replaceJokeNames(jokes[i], firstName, lastName)
 		}
 	}
 
@@ -311,22 +251,86 @@ func GetAllJokes(c *gin.Context) {
 		Value: gin.H{
 			"jokes": jokes,
 			"meta": gin.H{
-				"total_in_database":      models.GetJokesCount(),
-				"returned":               len(jokes),
-				"limited_to_categories":  limitToCategories,
-				"excluded_categories":    excludeCategories,
+				"total_in_database":     models.GetJokesCount(),
+				"total_matching":        total,
+				"returned":              len(jokes),
+				"page":                  page,
+				"limit":                 limit,
+				"limited_to_categories": limitToCategories,
+				"excluded_categories":   excludeCategories,
 			},
 		},
 	})
 }
 
+// SearchJokes returns a bounded page of case-insensitive text matches.
+func SearchJokes(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	if query == "" {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "q is required"})
+		return
+	}
+	if len(query) > 200 {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "q must be 200 characters or fewer"})
+		return
+	}
+	jokes := models.GetAllJokes()
+	if category := strings.TrimSpace(c.Query("category")); category != "" {
+		if !validateCategories(c, []string{category}) {
+			return
+		}
+		jokes = models.GetJokesByCategory(category)
+	}
+	jokes = models.SearchJokes(jokes, query)
+	total := len(jokes)
+	page, pageOK := boundedIntQuery(c, "page", 1, 1, 1_000_000)
+	limit, limitOK := boundedIntQuery(c, "limit", 25, 1, 100)
+	if !pageOK || !limitOK {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "page must be positive and limit must be between 1 and 100"})
+		return
+	}
+	jokes = models.Paginate(jokes, (page-1)*limit, limit)
+	c.JSON(http.StatusOK, Response{Type: "success", Value: gin.H{"jokes": jokes, "meta": gin.H{"query": query, "total_matching": total, "page": page, "limit": limit}}})
+}
+
+// GetJokesByCategory returns one bounded page of a category's jokes.
+func GetJokesByCategory(c *gin.Context) {
+	category := c.Param("category")
+	if !validateCategories(c, []string{category}) {
+		return
+	}
+	jokes := models.GetJokesByCategory(category)
+	total := len(jokes)
+	page, pageOK := boundedIntQuery(c, "page", 1, 1, 1_000_000)
+	limit, limitOK := boundedIntQuery(c, "limit", 25, 1, 100)
+	if !pageOK || !limitOK {
+		c.JSON(http.StatusBadRequest, Response{Type: "error", Value: "page must be positive and limit must be between 1 and 100"})
+		return
+	}
+	jokes = models.Paginate(jokes, (page-1)*limit, limit)
+	c.JSON(http.StatusOK, Response{Type: "success", Value: gin.H{"category": category, "jokes": jokes, "meta": gin.H{"total_matching": total, "page": page, "limit": limit}}})
+}
+
+func boundedIntQuery(c *gin.Context, name string, fallback, minimum, maximum int) (int, bool) {
+	value := c.Query(name)
+	if value == "" {
+		return fallback, true
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < minimum || parsed > maximum {
+		return 0, false
+	}
+	return parsed, true
+}
+
 // GetCategories returns all available categories
 func GetCategories(c *gin.Context) {
 	categories := models.GetCategories()
-	c.JSON(http.StatusOK, Response{
-		Type:  "success",
-		Value: categories,
-	})
+	result := make([]gin.H, 0, len(categories))
+	for _, category := range categories {
+		result = append(result, gin.H{"category": category, "count": len(models.GetJokesByCategory(category))})
+	}
+	c.JSON(http.StatusOK, Response{Type: "success", Value: result})
 }
 
 // GetCount returns joke count and statistics
@@ -359,13 +363,15 @@ func GetDocs(c *gin.Context) {
 		"description": "A comprehensive jokes API with 5000+ jokes across multiple categories",
 		"base_url":    c.Request.Host,
 		"endpoints": gin.H{
-			"/healthz":                      "Health check endpoint",
-			"/api/v1/jokes/random":          "Get a random joke",
-			"/api/v1/jokes/random/:count":   "Get multiple random jokes (1-100)",
-			"/api/v1/jokes/:id":             "Get a specific joke by ID",
-			"/api/v1/jokes/all":             "Get all jokes with optional filtering",
-			"/api/v1/jokes/categories":      "Get all available categories",
-			"/api/v1/jokes/count":           "Get total number of jokes and category stats",
+			"/healthz":                            "Health check endpoint",
+			"/api/v1/jokes/random":                "Get a random joke",
+			"/api/v1/jokes/random/:count":         "Get multiple random jokes (1-100)",
+			"/api/v1/jokes/:id":                   "Get a specific joke by ID",
+			"/api/v1/jokes/all":                   "Browse jokes with filtering and pagination",
+			"/api/v1/jokes/search":                "Search jokes by text",
+			"/api/v1/jokes/categories/{category}": "Browse a category",
+			"/api/v1/jokes/categories":            "Get all available categories",
+			"/api/v1/jokes/count":                 "Get total number of jokes and category stats",
 		},
 		"query_parameters": gin.H{
 			"firstName": "Replace 'Chuck' with this name",
@@ -373,6 +379,9 @@ func GetDocs(c *gin.Context) {
 			"limitTo":   "Array of categories to limit to. Format: [category] or [category1,category2]",
 			"exclude":   "Comma-separated categories to exclude",
 			"category":  "Filter by category",
+			"q":         "Search joke text or category names (up to 200 characters)",
+			"page":      "One-based result page (default 1)",
+			"limit":     "Results per page, 1-100 (default 25)",
 		},
 		"categories": models.GetCategories(),
 	})
@@ -443,40 +452,10 @@ func validateCategories(c *gin.Context, categories []string) bool {
 
 // OpenAPI/Swagger handlers
 
-// ServeSwaggerUI serves the Swagger UI page
+// ServeSwaggerUI serves self-contained API documentation without third-party assets.
 func ServeSwaggerUI(c *gin.Context) {
-	html := `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jokes API - OpenAPI Documentation</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
-    <style>
-        body { margin: 0; background: #282a36; }
-        .swagger-ui { max-width: 1200px; margin: 0 auto; }
-        .swagger-ui .topbar { display: none; }
-        .swagger-ui .info .title { color: #f8f8f2; }
-        .swagger-ui .scheme-container { background: #44475a; }
-        .swagger-ui select { background: #282a36; color: #f8f8f2; }
-    </style>
-</head>
-<body>
-    <div id="swagger-ui"></div>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-        SwaggerUIBundle({
-            url: '/openapi.json',
-            dom_id: '#swagger-ui',
-            deepLinking: true,
-            presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
-            layout: "BaseLayout"
-        });
-    </script>
-</body>
-</html>`
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	c.String(http.StatusOK, html)
+	c.String(http.StatusOK, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jokes API reference</title><style>body{font:1rem/1.5 system-ui,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#20242a}code{background:#eee;padding:.15rem .3rem}li{margin:.7rem 0}</style></head><body><main><h1>Jokes API reference</h1><p>Public read-only API. No account or key is required.</p><ul><li><a href="/openapi.json">Swagger 2.0 JSON specification</a></li><li><a href="/openapi.yaml">Swagger YAML specification</a></li><li><code>GET /api/v1/jokes/random</code> — retrieve one random joke</li><li><code>GET /api/v1/jokes/random/{count}</code> — retrieve 1–100 random jokes</li><li><code>GET /api/v1/jokes/{id}</code> — retrieve a joke by ID</li><li><code>GET /api/v1/jokes/all?page=1&amp;limit=25</code> — browse jokes</li><li><code>GET /api/v1/jokes/search?q=dad</code> — search jokes</li><li><code>GET /api/v1/jokes/categories</code> — list categories</li><li><code>GET /api/v1/jokes/categories/{category}</code> — browse a category</li><li><code>POST /api/v1/graphql</code> — run a GraphQL query</li></ul><p>Use <code>Accept: text/plain</code> or append <code>.txt</code> to supported joke GET routes for plain text.</p><p><a href="/">Home</a></p></main></body></html>`)
 }
 
 // ServeOpenAPIJSON serves the OpenAPI specification as JSON
@@ -500,78 +479,38 @@ func ServeOpenAPIYAML(c *gin.Context) {
 
 // GraphQL handlers
 
-// ServeGraphiQL serves the GraphiQL playground
+// ServeGraphiQL serves a browser-based GraphQL query form without external assets.
 func ServeGraphiQL(c *gin.Context) {
-	html := `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jokes API - GraphQL Playground</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/graphiql@3/graphiql.min.css">
-    <style>
-        body { margin: 0; height: 100vh; }
-        #graphiql { height: 100vh; }
-    </style>
-</head>
-<body>
-    <div id="graphiql"></div>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://cdn.jsdelivr.net/npm/graphiql@3/graphiql.min.js"></script>
-    <script>
-        const fetcher = GraphiQL.createFetcher({ url: '/graphql' });
-        ReactDOM.createRoot(document.getElementById('graphiql')).render(
-            React.createElement(GraphiQL, {
-                fetcher,
-                defaultQuery: ` + "`" + `# Welcome to the Jokes API GraphQL Playground!
-# Try these queries:
-
-query RandomJoke {
-  randomJoke {
-    id
-    joke
-    categories
-  }
-}
-
-query AllCategories {
-  categories
-}
-
-query Stats {
-  stats {
-    total
-    categories {
-      name
-      count
-    }
-  }
-}
-` + "`" + `
-            })
-        );
-    </script>
-</body>
-</html>`
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	c.String(http.StatusOK, html)
+	c.String(http.StatusOK, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jokes GraphQL</title><style>body{font:1rem/1.5 system-ui,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem}textarea{box-sizing:border-box;width:100%;min-height:16rem;font:1rem/1.5 monospace}button{padding:.65rem 1rem}</style></head><body><main><h1>Jokes GraphQL</h1><p>Submit a query to the public read-only endpoint. Example: <code>{ categories stats { total } }</code></p><form method="post" action="/graphql"><label for="query">GraphQL query</label><textarea id="query" name="query" required>{ categories }</textarea><button type="submit">Run query</button></form><p>Endpoint: <code>POST /api/v1/graphql</code></p><a href="/">Home</a></main></body></html>`)
 }
 
 // HandleGraphQL handles GraphQL queries via POST
 func HandleGraphQL(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024)
 	var request struct {
-		Query     string                 `json:"query"`
+		Query     string                 `json:"query" form:"query"`
 		Variables map[string]interface{} `json:"variables"`
 	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
+	formRequest := strings.HasPrefix(c.GetHeader("Content-Type"), "application/x-www-form-urlencoded")
+	var bindErr error
+	if formRequest {
+		bindErr = c.ShouldBind(&request)
+	} else {
+		bindErr = c.ShouldBindJSON(&request)
+	}
+	if bindErr != nil || strings.TrimSpace(request.Query) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"errors": []gin.H{{"message": "Invalid request"}}})
 		return
 	}
 
 	// Simple GraphQL query parser
 	result := executeGraphQL(request.Query, request.Variables)
+	if formRequest {
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.String(http.StatusOK, `<!doctype html><html lang="en"><meta charset="utf-8"><title>GraphQL result</title><body><main><h1>Query result</h1><pre>%s</pre><a href="/graphql">Run another query</a></main></body></html>`, template.HTMLEscapeString(mustJSON(result)))
+		return
+	}
 	c.JSON(http.StatusOK, result)
 }
 
@@ -657,65 +596,10 @@ jokes_api_up 1
 	c.String(http.StatusOK, metrics)
 }
 
-// BearerTokenMiddleware checks for valid bearer token in Authorization header
-func BearerTokenMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if auth == "" {
-			c.JSON(401, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
-		}
-
-		// Check for Bearer prefix
-		if len(auth) < 7 || auth[:7] != "Bearer " {
-			c.JSON(401, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
-		}
-
-		token := auth[7:]
-		if token == "" {
-			c.JSON(401, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
-		}
-
-		// Check against config token (would normally validate against stored tokens)
-		// For now, just check if token is non-empty (actual validation would use config.Server.Admin.APIToken)
-		c.Set("api_token", token)
-		c.Next()
+func mustJSON(value any) string {
+	encoded, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return `{"errors":[{"message":"Unable to encode result"}]}`
 	}
-}
-
-// Admin API handlers
-
-// GetAdminConfig returns current configuration (API)
-func GetAdminConfig(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"server": gin.H{
-			"address": "[::]",
-			"port":    "from config",
-			"pidfile": true,
-		},
-		"web": gin.H{
-			"theme": "dark",
-			"cors":  "*",
-		},
-		"rate_limit": gin.H{
-			"enabled":  true,
-			"requests": 120,
-			"window":   60,
-		},
-	})
-}
-
-// GetAdminStats returns server statistics (API)
-func GetAdminStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"jokes":      models.GetJokesCount(),
-		"categories": len(models.GetCategories()),
-		"status":     "online",
-		"version":    "1.0.0",
-	})
+	return string(encoded)
 }

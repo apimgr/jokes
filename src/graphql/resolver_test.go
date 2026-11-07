@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/apimgr/jokes/src/models"
+	models "github.com/apimgr/jokes/src/model"
 )
 
 func loadFixture(t *testing.T) {

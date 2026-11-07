@@ -1,0 +1,11 @@
+{{define "categories"}}
+<div class="container page-content">
+    <h2>Categories</h2>
+    <p>Browse the collection by category.</p>
+    <ul class="category-list">
+        {{range .Categories}}
+        <li><a href="/categories/{{.Name}}">{{.Name}}</a><span>{{.Count}} jokes</span></li>
+        {{else}}<li>No categories are available.</li>{{end}}
+    </ul>
+</div>
+{{end}}

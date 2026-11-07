@@ -1,0 +1,19 @@
+{{define "random"}}
+<div class="container page-content">
+    <h2>Random joke</h2>
+    {{if .RandomJoke}}
+    <article class="joke-card">
+        <p>{{if eq .RandomJoke.Type "twopart"}}{{.RandomJoke.Setup}}<br>{{.RandomJoke.Delivery}}{{else}}{{.RandomJoke.Joke}}{{end}}</p>
+        <p class="joke-meta">#{{.RandomJoke.ID}} · {{range $i, $category := .RandomJoke.Categories}}{{if $i}}, {{end}}<a href="/categories/{{$category}}">{{$category}}</a>{{end}}</p>
+    </article>
+    {{else}}<p>No joke is available.</p>{{end}}
+    <form action="/random" method="get">
+        <label for="random-category">Category (optional)</label>
+        <select id="random-category" name="category">
+            <option value="">All categories</option>
+            {{range .Categories}}<option value="{{.Name}}" {{if eq $.Category .Name}}selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        <button class="btn btn-primary" type="submit">Get another joke</button>
+    </form>
+</div>
+{{end}}

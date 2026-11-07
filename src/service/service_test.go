@@ -1,8 +1,10 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -102,14 +104,71 @@ func TestCopyBinaryMissingSource(t *testing.T) {
 }
 
 func TestInstallUninstallUnsupportedManager(t *testing.T) {
-	if runtime.GOOS != "plan9" {
-		t.Skip("Install/Uninstall only return the unsupported-manager error on an OS with no matching case (e.g. plan9); real Install/Uninstall on this OS would mutate system state")
-	}
+	originalDetector := serviceManagerDetector
+	serviceManagerDetector = func() ServiceType { return ServiceUnknown }
+	t.Cleanup(func() { serviceManagerDetector = originalDetector })
 
 	if err := Install(); err == nil {
 		t.Error("Install() error = nil, want error for unsupported service manager")
 	}
 	if err := Uninstall(); err == nil {
 		t.Error("Uninstall() error = nil, want error for unsupported service manager")
+	}
+}
+
+func TestServiceLifecycleDispatch(t *testing.T) {
+	originalDetector := serviceManagerDetector
+	originalRunner := serviceCommandRunner
+	t.Cleanup(func() {
+		serviceManagerDetector = originalDetector
+		serviceCommandRunner = originalRunner
+	})
+
+	tests := []struct {
+		name    string
+		manager ServiceType
+		call    func() error
+		want    []string
+	}{
+		{"systemd start", ServiceSystemd, Start, []string{"systemctl start jokes"}},
+		{"systemd stop", ServiceSystemd, Stop, []string{"systemctl stop jokes"}},
+		{"systemd restart", ServiceSystemd, Restart, []string{"systemctl restart jokes"}},
+		{"systemd reload", ServiceSystemd, Reload, []string{"systemctl reload jokes"}},
+		{"runit start", ServiceRunit, Start, []string{"sv start jokes"}},
+		{"runit reload", ServiceRunit, Reload, []string{"sv hup jokes"}},
+		{"launchd restart", ServiceLaunchd, Restart, []string{"launchctl unload /Library/LaunchDaemons/com.apimgr.jokes.plist", "launchctl load /Library/LaunchDaemons/com.apimgr.jokes.plist"}},
+		{"windows restart", ServiceWindows, Restart, []string{"sc.exe stop jokes", "sc.exe start jokes"}},
+		{"bsd restart", ServiceBSDRC, Restart, []string{"service jokes restart"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serviceManagerDetector = func() ServiceType { return tt.manager }
+			var got []string
+			serviceCommandRunner = func(name string, args ...string) error {
+				got = append(got, strings.Join(append([]string{name}, args...), " "))
+				return nil
+			}
+			if err := tt.call(); err != nil {
+				t.Fatalf("lifecycle command returned an error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("commands = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServiceLifecycleReturnsCommandError(t *testing.T) {
+	originalDetector := serviceManagerDetector
+	originalRunner := serviceCommandRunner
+	t.Cleanup(func() {
+		serviceManagerDetector = originalDetector
+		serviceCommandRunner = originalRunner
+	})
+	serviceManagerDetector = func() ServiceType { return ServiceSystemd }
+	want := errors.New("systemctl unavailable")
+	serviceCommandRunner = func(string, ...string) error { return want }
+	if err := Start(); !errors.Is(err, want) {
+		t.Fatalf("Start() error = %v, want %v", err, want)
 	}
 }

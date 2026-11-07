@@ -1,0 +1,29 @@
+{{define "browse"}}
+<div class="container page-content">
+    <h2>Browse jokes</h2>
+    <p>Search the collection or narrow it to a category.</p>
+    <form action="/browse" method="get" role="search">
+        <label for="joke-search">Search jokes</label>
+        <input id="joke-search" name="q" type="search" value="{{.Query}}" maxlength="200">
+        <label for="joke-category">Category</label>
+        <select id="joke-category" name="category">
+            <option value="">All categories</option>
+            {{range .Categories}}<option value="{{.Name}}" {{if eq $.Category .Name}}selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+    <p>{{len .Jokes}} jokes on this page. Page {{.PageNumber}}.</p>
+    <ol class="joke-list">
+        {{range .Jokes}}
+        <li class="joke-card" id="joke-{{.ID}}">
+            <p>{{if eq .Type "twopart"}}{{.Setup}}<br>{{.Delivery}}{{else}}{{.Joke}}{{end}}</p>
+            <p class="joke-meta">#{{.ID}} · {{range $i, $category := .Categories}}{{if $i}}, {{end}}<a href="/categories/{{$category}}">{{$category}}</a>{{end}}</p>
+        </li>
+        {{else}}<li>No jokes match this search.</li>{{end}}
+    </ol>
+    <nav aria-label="Browse pages">
+        {{if .HasPrevious}}<a href="/browse?q={{.Query}}&amp;category={{.Category}}&amp;limit={{.Limit}}&amp;page={{.PreviousPage}}">Previous</a>{{end}}
+        {{if .HasNext}}<a href="/browse?q={{.Query}}&amp;category={{.Category}}&amp;limit={{.Limit}}&amp;page={{.NextPage}}">Next</a>{{end}}
+    </nav>
+</div>
+{{end}}

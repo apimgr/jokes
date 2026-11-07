@@ -3,7 +3,10 @@ package graphql
 const Schema = `
 	type Joke {
 		id: Int!
-		joke: String!
+		type: String!
+		joke: String
+		setup: String
+		delivery: String
 		categories: [String!]!
 	}
 

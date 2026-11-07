@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -138,7 +139,7 @@ func TestSetupWebRoutes(t *testing.T) {
 		{"well-known security.txt registered", "/.well-known/security.txt", http.StatusOK},
 		{"manifest registered", "/manifest.json", http.StatusOK},
 		{"service worker registered", "/sw.js", http.StatusOK},
-		{"swagger redirect registered", "/swagger", http.StatusFound},
+		{"API docs registered", "/api-docs", http.StatusOK},
 	}
 
 	for _, tt := range tests {
@@ -149,6 +150,59 @@ func TestSetupWebRoutes(t *testing.T) {
 
 			if w.Code != tt.want {
 				t.Errorf("%s status = %d, want %d", tt.path, w.Code, tt.want)
+			}
+		})
+	}
+}
+
+func TestPrintHelpDocumentsCLIOptions(t *testing.T) {
+	original := os.Stdout
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = writer
+	printHelp()
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = original
+	output, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Jokes API", "Usage:", "--help", "--version", "--maintenance"} {
+		if !strings.Contains(string(output), want) {
+			t.Errorf("printHelp() output missing %q", want)
+		}
+	}
+}
+
+func TestGuaranteedRecoverySanitizesPanics(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		header string
+		want   string
+	}{
+		{"api response is JSON", "application/json", `"error":"SERVER_ERROR"`},
+		{"browser response is HTML", "text/html", "Something went wrong"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			router.Use(guaranteedRecovery())
+			router.GET("/", func(*gin.Context) { panic("private panic detail") })
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			request.Header.Set("Accept", tc.header)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500", response.Code)
+			}
+			if !strings.Contains(response.Body.String(), tc.want) || strings.Contains(response.Body.String(), "private panic detail") {
+				t.Fatalf("panic response was not sanitized: %s", response.Body.String())
 			}
 		})
 	}

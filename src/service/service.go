@@ -14,6 +14,13 @@ const (
 	orgName = "apimgr"
 )
 
+var (
+	serviceManagerDetector = DetectServiceManager
+	serviceCommandRunner   = func(name string, args ...string) error {
+		return exec.Command(name, args...).Run()
+	}
+)
+
 // ServiceType represents the type of service manager
 type ServiceType int
 
@@ -60,7 +67,7 @@ func DetectServiceManager() ServiceType {
 
 // Install installs the service for the detected service manager
 func Install() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
@@ -80,7 +87,7 @@ func Install() error {
 
 // Uninstall removes the service
 func Uninstall() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
@@ -475,20 +482,20 @@ func copyBinary(src, dst string) error {
 
 // Start starts the service
 func Start() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
-		return exec.Command("systemctl", "start", appName).Run()
+		return serviceCommandRunner("systemctl", "start", appName)
 	case ServiceRunit:
-		return exec.Command("sv", "start", appName).Run()
+		return serviceCommandRunner("sv", "start", appName)
 	case ServiceLaunchd:
 		plistPath := fmt.Sprintf("/Library/LaunchDaemons/com.%s.%s.plist", orgName, appName)
-		return exec.Command("launchctl", "load", plistPath).Run()
+		return serviceCommandRunner("launchctl", "load", plistPath)
 	case ServiceWindows:
-		return exec.Command("sc.exe", "start", appName).Run()
+		return serviceCommandRunner("sc.exe", "start", appName)
 	case ServiceBSDRC:
-		return exec.Command("service", appName, "start").Run()
+		return serviceCommandRunner("service", appName, "start")
 	default:
 		return fmt.Errorf("unsupported service manager")
 	}
@@ -496,20 +503,20 @@ func Start() error {
 
 // Stop stops the service
 func Stop() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
-		return exec.Command("systemctl", "stop", appName).Run()
+		return serviceCommandRunner("systemctl", "stop", appName)
 	case ServiceRunit:
-		return exec.Command("sv", "stop", appName).Run()
+		return serviceCommandRunner("sv", "stop", appName)
 	case ServiceLaunchd:
 		plistPath := fmt.Sprintf("/Library/LaunchDaemons/com.%s.%s.plist", orgName, appName)
-		return exec.Command("launchctl", "unload", plistPath).Run()
+		return serviceCommandRunner("launchctl", "unload", plistPath)
 	case ServiceWindows:
-		return exec.Command("sc.exe", "stop", appName).Run()
+		return serviceCommandRunner("sc.exe", "stop", appName)
 	case ServiceBSDRC:
-		return exec.Command("service", appName, "stop").Run()
+		return serviceCommandRunner("service", appName, "stop")
 	default:
 		return fmt.Errorf("unsupported service manager")
 	}
@@ -517,21 +524,21 @@ func Stop() error {
 
 // Restart restarts the service
 func Restart() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
-		return exec.Command("systemctl", "restart", appName).Run()
+		return serviceCommandRunner("systemctl", "restart", appName)
 	case ServiceRunit:
-		return exec.Command("sv", "restart", appName).Run()
+		return serviceCommandRunner("sv", "restart", appName)
 	case ServiceLaunchd:
 		Stop()
 		return Start()
 	case ServiceWindows:
-		exec.Command("sc.exe", "stop", appName).Run()
-		return exec.Command("sc.exe", "start", appName).Run()
+		serviceCommandRunner("sc.exe", "stop", appName)
+		return serviceCommandRunner("sc.exe", "start", appName)
 	case ServiceBSDRC:
-		return exec.Command("service", appName, "restart").Run()
+		return serviceCommandRunner("service", appName, "restart")
 	default:
 		return fmt.Errorf("unsupported service manager")
 	}
@@ -539,13 +546,13 @@ func Restart() error {
 
 // Reload sends reload signal to the service
 func Reload() error {
-	serviceType := DetectServiceManager()
+	serviceType := serviceManagerDetector()
 
 	switch serviceType {
 	case ServiceSystemd:
-		return exec.Command("systemctl", "reload", appName).Run()
+		return serviceCommandRunner("systemctl", "reload", appName)
 	case ServiceRunit:
-		return exec.Command("sv", "hup", appName).Run()
+		return serviceCommandRunner("sv", "hup", appName)
 	default:
 		// For others, restart is the fallback
 		return Restart()
