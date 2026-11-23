@@ -1,122 +1,53 @@
-# Jokes API - Installation Scripts
+# Installation scripts
 
-This directory contains installation scripts for different operating systems.
+The installers expect a built server binary in `binaries/` and must be run from the repository root. They do not download binaries or work when piped directly from GitHub.
 
-## Quick Install
+## Build and install
 
-### Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/apimgr/jokes/main/scripts/install.sh | sudo bash
-```
-
-### macOS
-```bash
-curl -fsSL https://raw.githubusercontent.com/apimgr/jokes/main/scripts/install.sh | bash
-```
-
-### Windows (PowerShell as Administrator)
-```powershell
-irm https://raw.githubusercontent.com/apimgr/jokes/main/scripts/windows.ps1 | iex
-```
-
-## Manual Installation
-
-### Prerequisites
-- Go 1.21 or higher (for building from source)
-- Git (optional, for cloning repository)
-
-### Install from Binary
-
-1. Download the appropriate binary for your platform from the [releases page](https://github.com/apimgr/jokes/releases)
-2. Extract the archive
-3. Run the installation script for your OS
-
-### Build from Source
+Build the release binaries with Docker and Make:
 
 ```bash
 git clone https://github.com/apimgr/jokes.git
 cd jokes
 make build
+```
+
+On a Linux system using systemd, run:
+
+```bash
 sudo ./scripts/install.sh
 ```
 
-## Installation Locations
+On macOS, run the same command from the checkout; the script uses `sudo` for installation operations. On Windows, open PowerShell as Administrator in the checkout and run:
 
-### Linux
-- Binary: `/usr/local/bin/jokes-api`
-- Data: `/usr/share/apimgr/jokes/`
-- Config: `/etc/apimgr/jokes/server.yml`
-- Logs: `/var/log/apimgr/jokes/`
-- Service: `/etc/systemd/system/jokes-api.service`
-
-### macOS
-- Binary: `/usr/local/bin/jokes-api`
-- Data: `/usr/local/share/apimgr/jokes/`
-- Config: `~/.config/apimgr/jokes/server.yml` (the application path resolver)
-- Logs: `/usr/local/var/log/apimgr/jokes/`
-- Service: `/Library/LaunchDaemons/com.apimgr.jokes.plist`
-
-### Windows
-- Binary: `C:\Program Files\APIMGR\jokes\jokes-api.exe`
-- Data: `C:\ProgramData\APIMGR\jokes\`
-- Config: `%USERPROFILE%\.config\apimgr\jokes\server.yml` (the application path resolver)
-- Logs: `C:\ProgramData\APIMGR\jokes\logs\`
-- Service: Windows Service named "JokesAPI"
-
-## Post-Installation
-
-After installation, the service will start automatically. You can access the API at:
-- Web Interface: http://localhost:64xxx/ (random port in 64xxx range)
-- API: http://localhost:64xxx/api/v1/
-- Health Check: http://localhost:64xxx/server/healthz
-
-To find the actual port, check the configuration file or service logs.
-
-## Uninstall
-
-### Linux
-```bash
-sudo systemctl stop jokes-api
-sudo systemctl disable jokes-api
-sudo rm /usr/local/bin/jokes-api
-sudo rm /etc/systemd/system/jokes-api.service
-sudo rm -rf /usr/share/apimgr/jokes
-sudo rm -rf /etc/apimgr/jokes
-```
-
-### macOS
-```bash
-sudo launchctl unload /Library/LaunchDaemons/com.apimgr.jokes.plist
-sudo rm /Library/LaunchDaemons/com.apimgr.jokes.plist
-sudo rm /usr/local/bin/jokes-api
-sudo rm -rf /usr/local/share/apimgr/jokes
-sudo rm -rf /usr/local/etc/apimgr/jokes
-```
-
-### Windows (PowerShell as Administrator)
 ```powershell
-Stop-Service -Name "JokesAPI"
-sc.exe delete "JokesAPI"
-Remove-Item "C:\Program Files\APIMGR\jokes" -Recurse -Force
-Remove-Item "C:\ProgramData\APIMGR\jokes" -Recurse -Force
+.\scripts\windows.ps1
 ```
+
+The shell installer supports Linux with systemd and macOS. BSD service installation is not yet supported by these scripts; use a release binary with the platform's service manager.
+
+## Canonical paths
+
+These paths follow AI.md PART 4 for the privileged service installations. The application creates its configuration file as `server.yml` on first run.
+
+| Platform | Binary | Configuration | Data | Logs | Service |
+|---|---|---|---|---|---|
+| Linux | `/usr/local/bin/jokes` | `/etc/apimgr/jokes/server.yml` | `/var/lib/apimgr/jokes/` | `/var/log/apimgr/jokes/` | `/etc/systemd/system/jokes.service` |
+| macOS | `/usr/local/bin/jokes` | `/Library/Application Support/apimgr/jokes/server.yml` | `/Library/Application Support/apimgr/jokes/data/` | `/Library/Logs/apimgr/jokes/` | `/Library/LaunchDaemons/us.apimgr.jokes.plist` |
+| Windows | `C:\Program Files\apimgr\jokes\jokes.exe` | `%ProgramData%\apimgr\jokes\server.yml` | `%ProgramData%\apimgr\jokes\data\` | `%ProgramData%\apimgr\jokes\logs\` | Windows Service `jokes` |
+
+Other canonical paths, including cache and backup locations, are listed in [AI.md PART 4](../AI.md#part-4-os-specific-paths). User-mode installations use the user-specific paths in that section.
+
+## Service operations
+
+Linux service controls use `systemctl` with service name `jokes`; logs are available with `journalctl -u jokes`. macOS uses `launchctl` and the LaunchDaemon plist above. Windows uses `Get-Service`, `Start-Service`, `Stop-Service`, and `Restart-Service` with service name `jokes`.
+
+The Windows installer creates the configured data and logs directories separately under `%ProgramData%\apimgr\jokes`.
 
 ## Troubleshooting
 
-### Service won't start
-Check the logs:
-- Linux: `journalctl -u jokes-api -f`
-- macOS: `tail -f /usr/local/var/log/apimgr/jokes/jokes.log`
-- Windows: Check Event Viewer or `C:\ProgramData\APIMGR\jokes\logs\`
+- **Binary not found:** build from the repository root and confirm the matching platform artifact exists, such as `binaries/jokes-linux-amd64`, `binaries/jokes-darwin-arm64`, or `binaries/jokes-windows-amd64.exe`.
+- **Linux service start failure:** inspect `journalctl -u jokes` and verify the configured paths are writable by the `jokes` service user.
+- **Port conflict:** edit the runtime-generated `server.yml` and restart the service.
 
-### Port already in use
-Edit the configuration file and change the port, then restart the service.
-
-### Permission denied
-Make sure you're running the installation script with appropriate permissions (sudo on Linux/macOS, Administrator on Windows).
-
-## Support
-
-For issues and questions:
-- GitHub Issues: https://github.com/apimgr/jokes/issues
-- Website: https://jokes.apimgr.us
+For project issues, use [GitHub Issues](https://github.com/apimgr/jokes/issues). For deployment-specific operations, contact that deployment's operator.

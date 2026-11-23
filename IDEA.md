@@ -28,10 +28,9 @@ client_binary: jokes-cli
 - Category listing with joke counts
 - Keyword search across all jokes
 - Full web frontend (server-side Go templates, dark/light/auto theme, PWA, mobile-first)
-- Server pages: `/server/about`, `/server/help`, `/server/healthz`, `/server/privacy`, `/server/terms`
+- Public server information pages for the service, help, health, privacy, and terms
 - CLI client (`jokes-cli`) for shell-pipeline use
-- OpenAPI/Swagger docs at `/api/{api_version}/server/swagger`
-- GraphQL at `/api/{api_version}/server/graphql`, with its browser query form at `/server/docs/graphql`
+- OpenAPI/Swagger documentation and a GraphQL endpoint with a browser query form
 
 **Non-goals:**
 - No user accounts, registration, or login of any kind
@@ -93,3 +92,25 @@ No external services called at runtime.
 
 - **Public joke data**: joke retrieval endpoints require no authentication. Server and token-management endpoints follow the authentication requirements in AI.md; no user accounts, registration, password login, or admin web panel are part of the product.
 - **All responses include `Access-Control-Allow-Origin: *`**: intentional. Public data API designed for cross-origin browser use.
+
+### API routes
+
+All project data is public and read-only; these routes require no authentication. API responses use the versioned REST envelope documented in `docs/api.md`.
+
+| Method | Path | Auth | Purpose; request and response |
+|---|---|---|---|
+| GET | `/api/v1/jokes/random` | Public | Optional category and include/exclude filters; returns one random joke. |
+| GET | `/api/v1/jokes/random/:count` | Public | Count from 1 to 100 plus optional filters; returns that many random jokes. |
+| GET | `/api/v1/jokes/:id` | Public | Numeric joke ID; returns one joke or not found. |
+| GET | `/api/v1/jokes/all` | Public | Optional search, category filters, page and limit; returns a paginated list. |
+| GET | `/api/v1/jokes/search` | Public | Required query plus optional category, page and limit; returns paginated matches. |
+| GET | `/api/v1/jokes/categories` | Public | No request body; returns category names and joke counts. |
+| GET | `/api/v1/jokes/categories/:category` | Public | Category plus optional page and limit; returns paginated jokes. |
+| GET | `/api/v1/jokes/count` | Public | No request body; returns total count and per-category counts. |
+| GET | `/browse` | Public | Server-rendered searchable, filterable joke catalog. |
+| GET | `/search` | Public | Server-rendered results for the supplied search query and filters. |
+| GET | `/random` | Public | Server-rendered random joke, optionally filtered by category. |
+| GET | `/categories` | Public | Server-rendered category directory and counts. |
+| GET | `/categories/:category` | Public | Server-rendered jokes for one category. |
+
+Project data routes are read-only; there are no project-defined create, update, or delete operations.

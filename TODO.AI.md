@@ -22,16 +22,16 @@ This list records requirements verified as missing from the current code during 
 | 13 Health and versioning | Gap: current health response is not the required dynamic/public-safe contract. |
 | 14 API structure | Partial: REST/GraphQL/OpenAPI exist; route inventory, canonical schemas, compatibility rules, and page/API parity remain incomplete. |
 | 15 SSL/TLS | Partial: SSL package exists; required lifecycle and Let's Encrypt behavior need verification and completion. |
-| 16 Web frontend | Partial: SSR pages and guest preference sync exist; contact/security/MCP contracts, all preference controls, translations, and PWA/accessibility requirements remain incomplete. |
+| 16 Web frontend | Partial: public SSR routes exist and preference/help hub subpages now render from registries, but major page contracts remain incomplete. Contact two-stage reporting/captcha/antispam, security report processing, DPO data, live authenticated MCP transport, full preference registry and consent behavior, language catalogs, and detailed shell/page accessibility and PWA requirements are not met. |
 | 17 Email and notifications | Gap: notification settings exist but delivery providers, templates, and workflows do not. |
-| 18 Scheduler | Partial: scheduler exists; scheduled jobs contain placeholder/no-op callbacks. |
+| 18 Scheduler | Partial: task panic recovery, overlap prevention, run status, and error reporting are implemented. Required named jobs, persistent task state/history, timezone handling, retry behavior, and actual task implementations remain absent; unavailable callbacks report failure rather than false success. |
 | 19 GeoIP | Gap: no GeoIP feature implementation. |
 | 20 Metrics | Partial: Prometheus metrics and a single Bearer token guard exist; token generation, secret storage, exact route/settings, and service-specific authorization are incomplete. |
 | 21 Backup and restore | Partial: command stubs exist; required consistent backup/restore and validation are incomplete. |
 | 22 Update command | Partial: update command exists; signature/checksum and safe update contract need verification and completion. |
 | 23 Privilege escalation and service | Partial: service command surface exists; escalation/install behavior is incomplete. |
 | 24 Service support | Partial: service package exists; supported init systems and lifecycle requirements need comparison. |
-| 25 Makefile | Partial: Makefile has build/test/check targets; all required targets, names, cross-platform outputs, and gate details need comparison. |
+| 25 Makefile | Partial: the Makefile now has the six required core targets plus `clean` and `release-check`, a bounded single-container cross-platform build, and coverage enforcement. Release/tag lifecycle and Docker publishing behavior still need a full requirement-by-requirement verification. |
 | 26 Docker | Partial: Docker files exist but do not meet the required complete image, rootfs, compose, entrypoint, and runtime contract. |
 | 27 CI/CD | Partial: GitHub workflows exist; required release/security/artifact coverage needs validation and gaps fixed. |
 | 28 Testing and development | Partial: unit tests exist; required integration, browser, Docker, clean-OS, and scripted test coverage are missing. |

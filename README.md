@@ -49,9 +49,10 @@ jokes-cli --id 42 --format json
 Joke retrieval routes are public and read-only. The service exposes REST at `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
 
 ```bash
-curl -q -LSsf https://jokes.apimgr.us/api/v1/jokes/random
-curl -q -LSsf 'https://jokes.apimgr.us/api/v1/jokes/search?q=programming&limit=10'
-curl -q -LSsf https://jokes.apimgr.us/api/v1/jokes/categories
+: "${JOKES_SERVER_URL:?Set JOKES_SERVER_URL to the deployed API base URL}"
+curl -q -LSsf "$JOKES_SERVER_URL/api/v1/jokes/random"
+curl -q -LSsf "$JOKES_SERVER_URL/api/v1/jokes/search?q=programming&limit=10"
+curl -q -LSsf "$JOKES_SERVER_URL/api/v1/jokes/categories"
 ```
 
 See the [API reference](https://apimgr-jokes.readthedocs.io/en/latest/api/) for routes, pagination, and response formats.
@@ -74,14 +75,18 @@ Contributors need Docker and Make. All Go commands run in the configured Go tool
 
 ```bash
 make dev
+make local
 make build
 make test
-make check
 ```
+
+`make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Run the lint checks in the Go toolchain container with `go vet ./...`, `staticcheck ./...`, and `gofmt -l ./src`.
+
+Run `./tests/run_tests.sh` for the basic Docker tier: it runs `make test`, builds the server and CLI binaries, then smoke-tests their command output and the public API and page routes in a disposable Alpine container. To run only the binary smoke tier, use `./tests/docker.sh`. Both scripts require Docker. The Incus and browser E2E tiers are not currently available in this repository.
 
 ### Docker build
 
-Build the image locally with `make docker` or `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`.
+`make docker` builds and pushes the multi-architecture image to the configured registry. Set `REGISTRY` before running it. For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`.
 
 ## Disclaimer
 
