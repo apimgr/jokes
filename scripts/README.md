@@ -45,21 +45,21 @@ sudo ./scripts/install.sh
 ### Linux
 - Binary: `/usr/local/bin/jokes-api`
 - Data: `/usr/share/apimgr/jokes/`
-- Config: `/etc/apimgr/jokes/server.yaml`
+- Config: `/etc/apimgr/jokes/server.yml`
 - Logs: `/var/log/apimgr/jokes/`
 - Service: `/etc/systemd/system/jokes-api.service`
 
 ### macOS
 - Binary: `/usr/local/bin/jokes-api`
 - Data: `/usr/local/share/apimgr/jokes/`
-- Config: `/usr/local/etc/apimgr/jokes/server.yaml`
+- Config: `~/.config/apimgr/jokes/server.yml` (the application path resolver)
 - Logs: `/usr/local/var/log/apimgr/jokes/`
 - Service: `/Library/LaunchDaemons/com.apimgr.jokes.plist`
 
 ### Windows
 - Binary: `C:\Program Files\APIMGR\jokes\jokes-api.exe`
 - Data: `C:\ProgramData\APIMGR\jokes\`
-- Config: `C:\ProgramData\APIMGR\jokes\server.yaml`
+- Config: `%USERPROFILE%\.config\apimgr\jokes\server.yml` (the application path resolver)
 - Logs: `C:\ProgramData\APIMGR\jokes\logs\`
 - Service: Windows Service named "JokesAPI"
 
@@ -68,7 +68,7 @@ sudo ./scripts/install.sh
 After installation, the service will start automatically. You can access the API at:
 - Web Interface: http://localhost:64xxx/ (random port in 64xxx range)
 - API: http://localhost:64xxx/api/v1/
-- Health Check: http://localhost:64xxx/healthz
+- Health Check: http://localhost:64xxx/server/healthz
 
 To find the actual port, check the configuration file or service logs.
 
