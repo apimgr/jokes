@@ -31,23 +31,24 @@ client_binary: jokes-cli
 - Server pages: `/server/about`, `/server/help`, `/server/healthz`, `/server/privacy`, `/server/terms`
 - CLI client (`jokes-cli`) for shell-pipeline use
 - OpenAPI/Swagger docs at `/api/{api_version}/server/swagger`
-- GraphQL at `/graphql`
+- GraphQL at `/api/{api_version}/server/graphql`, with its browser query form at `/server/docs/graphql`
 
 **Non-goals:**
 - No user accounts, registration, or login of any kind
 - No admin web panel (server configured via `server.yml` only)
 - No user-submitted or community jokes (curated dataset only, updated via releases)
-- No paid tiers, no API keys, no rate-limited access tiers
+- No paid tiers or API-key plans. The operator, anonymous-owner, and service tokens required by AI.md are infrastructure credentials, not paid access tiers or user accounts.
 - No content rating or flagging system
 
 ### Roles & permissions
 
-There are no user roles. All endpoints are public and require no authentication.
+There are no user accounts or user roles. Public joke pages and retrieval endpoints are anonymous; system, operator, and credential-only owner-token endpoints follow AI.md.
 
 | Actor | Access |
 |-------|--------|
-| **Anonymous visitor (browser)** | Full read access to all web pages and API endpoints |
-| **Anonymous API client (curl/CLI)** | Full read access to all API endpoints |
+| **Anonymous visitor (browser)** | Full read access to public web pages and joke data |
+| **Anonymous API client (curl/CLI)** | Full read access to public joke API endpoints |
+| **Anonymous token holder** | Uses the credential-only owner token model required by AI.md; it does not create an account or profile |
 | **Server operator** | Configures server via `server.yml` only; no web management interface |
 
 ### Data model & sensitivity
@@ -90,5 +91,5 @@ No external services called at runtime.
 
 ### Security decisions & exceptions
 
-- **No authentication on any endpoint**: intentional. Public read-only reference API.
+- **Public joke data**: joke retrieval endpoints require no authentication. Server and token-management endpoints follow the authentication requirements in AI.md; no user accounts, registration, password login, or admin web panel are part of the product.
 - **All responses include `Access-Control-Allow-Origin: *`**: intentional. Public data API designed for cross-origin browser use.

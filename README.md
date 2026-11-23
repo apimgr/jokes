@@ -1,6 +1,64 @@
 # Jokes
 
-Jokes is a public, read-only Go service for browsing and retrieving a curated joke collection. The server embeds its dataset and web assets in the binary; it does not require an external runtime service, account, or API key.
+Jokes is a public, read-only Go service for browsing and retrieving a curated joke collection. The server embeds its dataset and web assets in the binary; it does not require an external runtime service or user account.
+
+[![License](https://img.shields.io/github/license/apimgr/jokes)](LICENSE.md) [![Documentation](https://readthedocs.org/projects/apimgr-jokes/badge/?version=latest)](https://apimgr-jokes.readthedocs.io/)
+
+## Install
+
+Download a release from [GitHub Releases](https://github.com/apimgr/jokes/releases/latest). Releases include server and CLI binaries for Linux, macOS, Windows, and FreeBSD on amd64 and arm64.
+
+| Platform | Server binary | CLI binary |
+|---|---|---|
+| Linux amd64 / arm64 | `jokes-linux-{amd64,arm64}` | `jokes-cli-linux-{amd64,arm64}` |
+| macOS Intel / Apple Silicon | `jokes-darwin-{amd64,arm64}` | `jokes-cli-darwin-{amd64,arm64}` |
+| Windows amd64 / arm64 | `jokes-windows-{amd64,arm64}.exe` | `jokes-cli-windows-{amd64,arm64}.exe` |
+| FreeBSD amd64 / arm64 | `jokes-freebsd-{amd64,arm64}` | `jokes-cli-freebsd-{amd64,arm64}` |
+
+On Linux amd64, install the server with:
+
+```bash
+curl -q -LSsf -o jokes https://github.com/apimgr/jokes/releases/latest/download/jokes-linux-amd64
+chmod +x jokes
+sudo install -m 0755 jokes /usr/local/bin/jokes
+```
+
+For macOS, choose the matching `darwin` binary and remove quarantine after download with `xattr -d com.apple.quarantine ./jokes 2>/dev/null || true`. Windows users should download the matching `.exe` and add its directory to `%PATH%`.
+
+## Docker
+
+The production compose file is [docker/docker-compose.yml](docker/docker-compose.yml). Review its port and volume settings, then run `docker compose -f docker/docker-compose.yml up -d`.
+
+## Server
+
+Run `jokes --help` for server options. On first start, the server creates its configuration files in its configuration directory. The web interface includes browse, search, category, random joke, API reference, and public server information pages.
+
+## Client CLI
+
+The `jokes-cli` companion supports shell use and structured output:
+
+```bash
+jokes-cli --help
+jokes-cli --search programming --count 5
+jokes-cli --category dadjokes
+jokes-cli --id 42 --format json
+```
+
+## API
+
+Joke retrieval routes are public and read-only. The service exposes REST at `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
+
+```bash
+curl -q -LSsf https://jokes.apimgr.us/api/v1/jokes/random
+curl -q -LSsf 'https://jokes.apimgr.us/api/v1/jokes/search?q=programming&limit=10'
+curl -q -LSsf https://jokes.apimgr.us/api/v1/jokes/categories
+```
+
+See the [API reference](https://apimgr-jokes.readthedocs.io/en/latest/api/) for routes, pagination, and response formats.
+
+## Documentation
+
+User and operator guides are published at [Read the Docs](https://apimgr-jokes.readthedocs.io/).
 
 ## Features
 
@@ -10,59 +68,25 @@ Jokes is a public, read-only Go service for browsing and retrieving a curated jo
 - Companion `jokes-cli` for shell use
 - Embedded, build-time joke data
 
-## Run
+## Development
 
-Download a release binary or build from source using the repository Makefile. The server reads `server.yml` from its configuration directory, creates defaults when needed, and binds to the configured address and port. `CONFIG_DIR` can select the configuration directory; `--config` is also supported.
+Contributors need Docker and Make. All Go commands run in the configured Go toolchain container:
 
-```sh
-jokes --help
-jokes --version
-jokes --status
-jokes --address 127.0.0.1 --port 8080
+```bash
+make dev
+make build
+make test
+make check
 ```
 
-The site defaults to the configured port. Set `PORT` when running the container; the default container port is 80.
+### Docker build
 
-## API
+Build the image locally with `make docker` or `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`.
 
-All API endpoints are public and read-only.
+## Disclaimer
 
-```sh
-curl 'https://jokes.apimgr.us/api/v1/jokes/random'
-curl 'https://jokes.apimgr.us/api/v1/jokes/search?q=programming&limit=10'
-curl 'https://jokes.apimgr.us/api/v1/jokes/categories'
-curl 'https://jokes.apimgr.us/api/v1/jokes/all?page=1&limit=25'
-```
-
-- API reference: `/openapi` and `/api/v1/server/swagger`
-- Swagger JSON: `/openapi.json`
-- Swagger YAML: `/openapi.yaml`
-- GraphQL query form: `/graphql`
-- GraphQL endpoint: `POST /api/v1/graphql`
-- Plain text: add `.txt` to supported joke GET endpoints or send `Accept: text/plain`
-
-## CLI client
-
-```sh
-jokes-cli --help
-jokes-cli --search programming --count 5
-jokes-cli --category dadjokes
-jokes-cli --id 42 --format json
-jokes-cli --server https://jokes.example.org --count 3
-```
-
-The server can be selected with `--server` or `JOKES_SERVER_PRIMARY`. HTTPS is required except for localhost.
-
-## Docker
-
-Build the production image from the repository root:
-
-```sh
-docker build -f docker/Dockerfile -t jokes:latest .
-```
-
-The human-managed compose file is `docker/docker-compose.yml`. Compose resolves its `./volumes` mounts relative to `docker/`, stores configuration and data under `docker/volumes/`, and binds the service to `172.17.0.1:64580`.
+This software is provided as is without warranty. Evaluate it before production use. The application license does not establish reuse rights for the third-party joke corpus.
 
 ## License
 
-The application is licensed under MIT. Joke dataset source and item-level reuse terms require confirmation; see `TODO.AI.md` before redistributing modified content.
+The application code is licensed under MIT. See [LICENSE.md](LICENSE.md) for dependency attribution. The joke corpus is third-party content; verify its source and item-level terms before redistributing it.
