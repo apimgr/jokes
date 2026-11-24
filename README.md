@@ -85,7 +85,7 @@ make test
 
 Run `./tests/run_tests.sh` for the basic Docker tier: it runs `make test`, builds the server and CLI binaries, then smoke-tests their command output, public API routes, and server-rendered pages in a disposable Alpine container. The smoke checks include joke detail pages, the themed 404 for an unknown joke, and the plain-text joke-by-ID endpoint. To run only the binary smoke tier, use `./tests/docker.sh`. Both scripts require Docker.
 
-For on-demand system integration checks, `./tests/incus.sh [systemd|openrc|all]` tests service installation and lifecycle, API and page routes, owner-token/MCP access, and Tor/I2P status in Debian systemd and Alpine OpenRC containers. It requires Incus; `all` is the default. `./tests/e2e.sh` is the on-demand E2E entry point and currently checks SSR output and API/frontend content negotiation over HTTP inside Docker. Although the script starts a headless Chromium sidecar, current assertions do not drive a browser; no-JavaScript and full-browser interaction tiers are not implemented yet. Neither on-demand script is part of `make test` or the commit gate.
+For on-demand system integration checks, `./tests/incus.sh [systemd|openrc|all]` exercises service installation and lifecycle, API and page routes, owner-token/MCP access, and Tor/I2P health reporting in Debian systemd and Alpine OpenRC containers. It requires Incus; `all` is the default. `./tests/e2e.sh` runs three browser-oriented tiers in Docker: SSR and content-negotiation checks, page/form checks with JavaScript disabled, and Chromium navigation/PWA registration checks. Neither on-demand script is part of `make test` or the commit gate.
 
 ### Docker build
 

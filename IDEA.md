@@ -9,6 +9,8 @@ project_org: apimgr
 internal_name: jokes
 internal_org: apimgr
 app_name: Jokes API
+tagline: Curated jokes for web, API, and CLI.
+owner_token: jokes_owner_token_wnggjttn
 repo: https://github.com/apimgr/jokes
 license: MIT
 binary: jokes
@@ -65,6 +67,8 @@ There are no user accounts or user roles. Public joke pages and retrieval endpoi
 | `delivery` | string — punchline (twopart only) | Public |
 
 No PII stored or served.
+
+**Public health stats extension:** `/server/healthz` and its API mirror may include `stats.jokes_total`, the aggregate number of jokes loaded by this application. The count contains no user or deployment-specific data.
 
 ### Trust boundaries & external services
 
