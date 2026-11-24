@@ -1,6 +1,6 @@
 ## Project description
 
-Jokes is a full-stack Go web application serving over 5,160 curated jokes across 16 categories — including Chuck Norris facts, dad jokes, programming humor, and anime jokes — through a versioned REST API, GraphQL endpoint, and a server-side rendered web UI. Jokes come in two formats: single one-liners and two-part setup/punchline pairs. All joke data is embedded in the binary at build time. A companion CLI tool lets users pull jokes directly from the terminal. Deployed as a single self-contained static binary.
+Jokes is a full-stack Go application serving over 5,160 curated jokes across 16 categories through a versioned REST API, GraphQL endpoint, server-rendered web UI, and companion CLI. Joke records use single one-liners or two-part setup/punchline pairs, and the static corpus is embedded in the server binary. The service also follows the shared AI.md operational contract for configuration, security, scheduled maintenance, backups, updates, service management, and supported optional integrations.
 
 ## Project variables
 
@@ -32,6 +32,9 @@ client_binary: jokes-cli
 - Keyword search across all jokes
 - Full web frontend (server-side Go templates, dark/light/auto theme, PWA, mobile-first)
 - Public server information pages for the service, help, health, privacy, and terms
+- Registered help and preferences hubs and their configured sub-pages, including token and preference-sync flows
+- Shared server/operator security, audit, privacy, backup, update, scheduler, TLS, metrics, and notification capabilities specified by AI.md
+- Optional integrations and their configuration-controlled runtime behavior, including external release/feed sources, CAPTCHA/email providers, GeoIP data, and Tor/I2P services where enabled
 - CLI client (`jokes-cli`) for shell-pipeline use
 - OpenAPI/Swagger documentation and a GraphQL endpoint with a browser query form
 
@@ -75,10 +78,10 @@ No PII stored or served.
 
 | Boundary | Trust level | Notes |
 |----------|-------------|-------|
-| Joke dataset (embedded at build) | Fully trusted | Static, compiled into binary |
+| Joke dataset (embedded at build) | Trusted application data | Static corpus compiled into the binary; provenance and item-level redistribution evidence must be maintained separately from the application-code license. |
 | Incoming HTTP requests | **Untrusted** | All query parameters validated |
+| Configured external integrations | Untrusted | Network responses and provider inputs are validated; optional integrations run only under AI.md configuration and feature rules. |
 
-No external services called at runtime.
 
 ### Threat model & abuse cases
 
@@ -97,7 +100,7 @@ No external services called at runtime.
 ### Security decisions & exceptions
 
 - **Public joke data**: joke retrieval endpoints require no authentication. Server and token-management endpoints follow the authentication requirements in AI.md; no user accounts, registration, password login, or admin web panel are part of the product.
-- **All responses include `Access-Control-Allow-Origin: *`**: intentional. Public data API designed for cross-origin browser use.
+- **CORS**: Public endpoints may use the configured wildcard origin without credentials. Credentialed requests use explicitly allowed origins; wildcard origins are never combined with credentials, as required by AI.md.
 
 ### API routes
 
