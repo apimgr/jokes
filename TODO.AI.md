@@ -36,7 +36,7 @@ This list records requirements verified as missing from the current code during 
 | 27 CI/CD | Partial: GitHub workflows exist; required release/security/artifact coverage needs validation and gaps fixed. |
 | 28 Testing and development | Partial: unit, Docker, Incus, and browser E2E harnesses exist; prescribed integration/clean-OS coverage and full scripted execution remain to be checked. |
 | 29 ReadTheDocs | Partial: documentation pages, RTD config, and root `mkdocs.yml` exist; page accuracy and successful documentation builds remain to be verified. |
-| 30 I18N and A11Y | Gap: UI is hardcoded English; catalogs, language negotiation, key parity, RTL and full WCAG requirements are absent. |
+| 30 I18N and A11Y | Partial: six embedded locale catalogs, language negotiation, RTL direction, and translated CLI text exist; key parity, complete SSR/browser UI translation, and full WCAG conformance remain incomplete. |
 | 31 Tor and I2P | Gap: no overlay network management. |
 | 32 Client | Partial: CLI commands, UUID lookup, authentication, and scripts exist; full command/TUI/completion/config and server-operation parity remain incomplete. |
 | 33 IDEA.md reference | Partial: IDEA.md was reconciled with the current AI.md product/auth model, but route inventory and project variables still need full verification. |
