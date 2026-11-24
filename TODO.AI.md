@@ -33,7 +33,7 @@ This list records requirements verified as missing from the current code during 
 | 24 Service support | Partial: service package exists; supported init systems and lifecycle requirements need comparison. |
 | 25 Makefile | Partial: the Makefile now has the six required core targets plus `clean` and `release-check`, a bounded single-container cross-platform build, and coverage enforcement. Release/tag lifecycle and Docker publishing behavior still need a full requirement-by-requirement verification. |
 | 26 Docker | Partial: Docker files exist but do not meet the required complete image, rootfs, compose, entrypoint, and runtime contract. |
-| 27 CI/CD | Partial: GitHub workflows exist; required release/security/artifact coverage needs validation and gaps fixed. |
+| 27 CI/CD | Partial: GitHub, GitLab, Gitea, Forgejo, and Jenkins workflow files exist; required release/security/artifact coverage and action pinning still need validation. |
 | 28 Testing and development | Partial: unit, Docker, Incus, and browser E2E harnesses exist; prescribed integration/clean-OS coverage and full scripted execution remain to be checked. |
 | 29 ReadTheDocs | Partial: documentation pages, RTD config, and root `mkdocs.yml` exist; page accuracy and successful documentation builds remain to be verified. |
 | 30 I18N and A11Y | Partial: six embedded locale catalogs, language negotiation, RTL direction, and translated CLI text exist; key parity, complete SSR/browser UI translation, and full WCAG conformance remain incomplete. |
