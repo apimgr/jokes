@@ -59,7 +59,8 @@ There are no user accounts or user roles. Public joke pages and retrieval endpoi
 
 | Field | Type | Sensitivity |
 |-------|------|-------------|
-| `id` | integer — unique identifier from the curated dataset | Public |
+| `id` | opaque UUID v4 persisted by the server for public lookup and links | Public |
+| `source_id` | integer — identifier from the embedded curated dataset; internal only and never returned by a public surface | Internal |
 | `categories` | string array — category names | Public |
 | `type` | string — `single` or `twopart` | Public |
 | `joke` | string — full joke text (single-type only) | Public |
@@ -106,7 +107,7 @@ All project data is public and read-only; these routes require no authentication
 |---|---|---|---|
 | GET | `/api/v1/jokes/random` | Public | Optional category and include/exclude filters; returns one random joke. |
 | GET | `/api/v1/jokes/random/:count` | Public | Count from 1 to 100 plus optional filters; returns that many random jokes. |
-| GET | `/api/v1/jokes/:id` | Public | Numeric joke ID; returns one joke or not found. |
+| GET | `/api/v1/jokes/:id` | Public | Opaque UUID v4 joke ID; returns one joke or not found. |
 | GET | `/api/v1/jokes/all` | Public | Optional search, category filters, page and limit; returns a paginated list. |
 | GET | `/api/v1/jokes/search` | Public | Required query plus optional category, page and limit; returns paginated matches. |
 | GET | `/api/v1/jokes/categories` | Public | No request body; returns category names and joke counts. |
@@ -115,7 +116,7 @@ All project data is public and read-only; these routes require no authentication
 | GET | `/browse` | Public | Server-rendered searchable, filterable joke catalog. |
 | GET | `/search` | Public | Server-rendered results for the supplied search query and filters. |
 | GET | `/random` | Public | Server-rendered random joke, optionally filtered by category. |
-| GET | `/jokes/:id` | Public | Server-rendered joke detail page; an unknown ID returns a themed 404 page. |
+| GET | `/jokes/:id` | Public | Server-rendered joke detail page by opaque UUID v4; an unknown ID returns a themed 404 page. |
 | GET | `/categories` | Public | Server-rendered category directory and counts. |
 | GET | `/categories/:category` | Public | Server-rendered jokes for one category. |
 

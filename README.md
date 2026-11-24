@@ -31,7 +31,7 @@ The production compose file is [docker/docker-compose.yml](docker/docker-compose
 
 ## Server
 
-Run `jokes --help` for server options. On first start, the server creates its configuration files in its configuration directory. The web interface includes browse, search, category, random joke, API reference, and public server information pages.
+Run `jokes --help` for server options. On first start, the server creates its configuration and secret files in its configuration directory, then initializes its persistent SQLite state. The operator token is printed once at first start; save it securely. The web interface includes browse, search, category, random joke, API reference, owner-token management, guest preferences, reporting, and public server information pages.
 
 ## Client CLI
 
@@ -41,12 +41,12 @@ The `jokes-cli` companion supports shell use and structured output:
 jokes-cli --help
 jokes-cli --search programming --count 5
 jokes-cli --category dadjokes
-jokes-cli --id 42 --format json
+jokes-cli --id "$JOKE_ID" --format json
 ```
 
 ## API
 
-Joke retrieval routes are public and read-only. The service exposes REST at `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
+Joke retrieval routes are public and read-only. Public joke IDs are opaque UUIDs; the embedded dataset's numeric source IDs are never exposed. The service exposes REST at `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
 
 ```bash
 : "${JOKES_SERVER_URL:?Set JOKES_SERVER_URL to the deployed API base URL}"
@@ -59,14 +59,16 @@ See the [API reference](https://apimgr-jokes.readthedocs.io/en/latest/api/) for 
 
 ## Documentation
 
-User and operator guides are published at [Read the Docs](https://apimgr-jokes.readthedocs.io/).
+User and operator guides are published at [Read the Docs](https://apimgr-jokes.readthedocs.io/), including the [translation guide](https://apimgr-jokes.readthedocs.io/en/latest/translating/).
 
 ## Features
 
 - Versioned REST API with random, category, ID, search, and paginated collection endpoints
 - GraphQL query endpoint and browser query form
+- Authenticated Streamable HTTP MCP with read-only joke tools
 - Server-rendered web catalog, categories, search, theme preferences, and PWA assets
 - Server-rendered joke detail pages with themed not-found responses
+- Persistent owner and linked tokens for MCP and owner-scoped API operations
 - Companion `jokes-cli` for shell use
 - Embedded, build-time joke data
 
