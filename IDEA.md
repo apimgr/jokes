@@ -24,6 +24,7 @@ client_binary: jokes-cli
 - Random joke retrieval (any category or filtered by category)
 - Category-filtered retrieval
 - Joke lookup by ID
+- Server-rendered joke detail pages by ID, with themed 404 responses for unknown IDs
 - Paginated full list and per-category list
 - Category listing with joke counts
 - Keyword search across all jokes
@@ -110,6 +111,7 @@ All project data is public and read-only; these routes require no authentication
 | GET | `/browse` | Public | Server-rendered searchable, filterable joke catalog. |
 | GET | `/search` | Public | Server-rendered results for the supplied search query and filters. |
 | GET | `/random` | Public | Server-rendered random joke, optionally filtered by category. |
+| GET | `/jokes/:id` | Public | Server-rendered joke detail page; an unknown ID returns a themed 404 page. |
 | GET | `/categories` | Public | Server-rendered category directory and counts. |
 | GET | `/categories/:category` | Public | Server-rendered jokes for one category. |
 

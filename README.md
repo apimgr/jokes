@@ -66,6 +66,7 @@ User and operator guides are published at [Read the Docs](https://apimgr-jokes.r
 - Versioned REST API with random, category, ID, search, and paginated collection endpoints
 - GraphQL query endpoint and browser query form
 - Server-rendered web catalog, categories, search, theme preferences, and PWA assets
+- Server-rendered joke detail pages with themed not-found responses
 - Companion `jokes-cli` for shell use
 - Embedded, build-time joke data
 
@@ -82,7 +83,9 @@ make test
 
 `make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Run the lint checks in the Go toolchain container with `go vet ./...`, `staticcheck ./...`, and `gofmt -l ./src`.
 
-Run `./tests/run_tests.sh` for the basic Docker tier: it runs `make test`, builds the server and CLI binaries, then smoke-tests their command output and the public API and page routes in a disposable Alpine container. To run only the binary smoke tier, use `./tests/docker.sh`. Both scripts require Docker. The Incus and browser E2E tiers are not currently available in this repository.
+Run `./tests/run_tests.sh` for the basic Docker tier: it runs `make test`, builds the server and CLI binaries, then smoke-tests their command output, public API routes, and server-rendered pages in a disposable Alpine container. The smoke checks include joke detail pages, the themed 404 for an unknown joke, and the plain-text joke-by-ID endpoint. To run only the binary smoke tier, use `./tests/docker.sh`. Both scripts require Docker.
+
+For on-demand system integration checks, `./tests/incus.sh [systemd|openrc|all]` tests service installation and lifecycle, API and page routes, owner-token/MCP access, and Tor/I2P status in Debian systemd and Alpine OpenRC containers. It requires Incus; `all` is the default. `./tests/e2e.sh` is the on-demand E2E entry point and currently checks SSR output and API/frontend content negotiation over HTTP inside Docker. Although the script starts a headless Chromium sidecar, current assertions do not drive a browser; no-JavaScript and full-browser interaction tiers are not implemented yet. Neither on-demand script is part of `make test` or the commit gate.
 
 ### Docker build
 
