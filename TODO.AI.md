@@ -11,7 +11,7 @@ This list records requirements verified as missing from the current code during 
 | 2 License and attribution | Partial: application license exists; corpus provenance and item-level redistribution rights are unverified. |
 | 3 Project structure | Partial: Go sources, docs, CI providers, tests, and instruction loaders exist; required generated metadata and complete directory inventory need comparison. |
 | 4 OS paths | Partial: platform-specific path and privilege files exist; full per-OS directory and permission contract remains to be checked. |
-| 5 Configuration | Partial: strict YAML loading, secrets separation, database/token settings, trusted proxies, CORS, contact, and update settings exist; the canonical full schema, drop-in merge, reload, and remaining settings are incomplete. |
+| 5 Configuration | Partial: strict primary YAML loading, private secret separation for operator/encryption/metrics/database/backup credentials, selected drop-in merges, trusted proxies, CORS, contact, and nested update settings exist; the canonical full schema, complete drop-in merge, reload, and remaining settings are incomplete. |
 | 6 Application modes | Partial: mode support exists; transitions and behavior do not meet the complete contract. |
 | 7 Binary requirements | Partial: server and client binaries exist; naming, metadata, hardening, and platform expectations need full comparison. |
 | 8 Server CLI | Gap: current flags and command dispatcher cover only a subset of required commands. |
@@ -26,9 +26,9 @@ This list records requirements verified as missing from the current code during 
 | 17 Email and notifications | Gap: notification settings exist but delivery providers, templates, and workflows do not. |
 | 18 Scheduler | Partial: timezone-aware cron/interval parsing, catch-up, retry/panic handling, persistent task/history adapters, config task defaults, and always-on startup exist; main currently registers only `healthcheck_self`, leaving required built-in jobs, audit/notification observers, and full shutdown/config integration incomplete. |
 | 19 GeoIP | Gap: no GeoIP feature implementation. |
-| 20 Metrics | Partial: Prometheus metrics and a Bearer token guard exist; generated token storage, exact route/settings, cardinality, and service-specific authorization need review. |
-| 21 Backup and restore | Partial: command stubs exist; required consistent backup/restore and validation are incomplete. |
-| 22 Update command | Partial: update command exists; signature/checksum and safe update contract need verification and completion. |
+| 20 Metrics | Partial: isolated Prometheus collectors, bounded HTTP labels, database/token/scheduler hooks, gopsutil system/runtime metrics, per-service generated secrets, authenticated route aliases, Grafana and sanitized Loki handlers exist; rate-limit/cache instrumentation, complete dashboard coverage, configuration validation, and broader app hooks remain incomplete. |
+| 21 Backup and restore | Partial: archive creation checkpoints local SQLite and writes a verified root-layout archive with config, secrets, optional data/SSL, external certificate files, and optional encryption; retention, full restore/rollback, remote-cache handling, compliance gates, metadata/audit, and TLS path rewriting remain incomplete. |
+| 22 Update command | Partial: channel checking, HTTPS SHA-256 verified staging, elevated startup apply, binary replacement, restart helpers, branch persistence, scheduled deferred checks, and exit-75 restart are integrated; audit/notification events, service-aware restart, and failure recovery coverage remain incomplete. |
 | 23 Privilege escalation and service | Partial: service command surface exists; escalation/install behavior is incomplete. |
 | 24 Service support | Partial: service package exists; supported init systems and lifecycle requirements need comparison. |
 | 25 Makefile | Partial: the Makefile now has the six required core targets plus `clean` and `release-check`, a bounded single-container cross-platform build, and coverage enforcement. Release/tag lifecycle and Docker publishing behavior still need a full requirement-by-requirement verification. |

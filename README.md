@@ -25,6 +25,8 @@ sudo install -m 0755 jokes /usr/local/bin/jokes
 
 For macOS, choose the matching `darwin` binary and remove quarantine after download with `xattr -d com.apple.quarantine ./jokes 2>/dev/null || true`. Windows users should download the matching `.exe` and add its directory to `%PATH%`.
 
+The repository installer scripts support Linux (systemd) and macOS (LaunchDaemon) when run from a complete checkout containing a built binary. See [Installation](docs/installation.md) for their requirements; BSD installation is not provided by these scripts.
+
 ## Docker
 
 The production compose file is [docker/docker-compose.yml](docker/docker-compose.yml). Review its port and volume settings, then run `docker compose -f docker/docker-compose.yml up -d`.
