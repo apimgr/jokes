@@ -41,6 +41,11 @@ This project includes the following third-party software:
 - Copyright: Dracula Theme
 - URL: https://draculatheme.com/
 
+### Runtime GeoIP datasets
+- DB-IP City databases: CC BY 4.0; source: https://db-ip.com/.
+- IPtoASN ASN and Country databases: PDDL; source: https://iptoasn.com/.
+- Required City database attribution: [IP Geolocation by DB-IP](https://db-ip.com/).
+
 ### Vendored browser documentation tools
 
 | Library | Version | License | Copyright |
