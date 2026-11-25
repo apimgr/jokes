@@ -127,5 +127,30 @@ All project data is public and read-only; these routes require no authentication
 | GET | `/jokes/:id` | Public | Server-rendered joke detail page by opaque UUID v4; an unknown ID returns a themed 404 page. |
 | GET | `/categories` | Public | Server-rendered category directory and counts. |
 | GET | `/categories/:category` | Public | Server-rendered jokes for one category. |
+| GET | `/server` | Public | Permanent redirect to the About page. |
+| GET | `/server/about`, `/server/help`, `/server/help/mcp`, `/server/privacy`, `/server/terms`, `/server/dpo`, `/server/security`, `/server/security/policy`, `/server/security/thanks` | Public | Server-rendered service, usage, privacy, data-protection, security-policy, and acknowledgment pages. |
+| GET | `/server/healthz` | Public | Server-rendered service health with negotiated HTML, JSON, or text output. |
+| GET | `/server/contact` | Public | Report-form chooser or a type-specific report form; security reports require the current security identifier. |
+| POST | `/server/contact` | Public | Submit a report through validation, review, and confirmation. |
+| GET | `/server/security/report/:tracking_id` | Public | Consume the single-use report-status link and display the report's public triage state. |
+| GET, POST | `/server/preferences` | Public | Read or update guest theme and language preferences, subject to cookie consent. |
+| GET | `/server/preferences/tokens` | Public | Manage the anonymous visitor's owner tokens when a valid owner credential is supplied. |
+| POST | `/server/preferences/token/:action`, `/server/preferences/tokens`, `/server/preferences/tokens/:id/:action` | Public | Create, restore, reveal, rotate, rename, revoke, or forget owner and linked tokens using the owner's credential. |
+| GET, POST | `/server/preferences/sync`, `/server/preferences/sync/import` | Public | Export and import consented guest preferences between devices. |
+| POST | `/server/consent`, `/server/ccpa` | Public | Save cookie-category consent or the visitor's sale opt-out choice. |
+| GET | `/api/v1/server/about`, `/api/v1/server/help`, `/api/v1/server/help/mcp`, `/api/v1/server/privacy`, `/api/v1/server/terms`, `/api/v1/server/dpo`, `/api/v1/server/security`, `/api/v1/server/security/policy`, `/api/v1/server/security/thanks` | Public | JSON mirrors of the corresponding public service pages and configured content. |
+| GET | `/api/v1/server/contact` | Public | Describe the current report form, its type-specific fields, CAPTCHA proof, and form token. |
+| POST | `/api/v1/server/contact` | Public | Submit or confirm a report through the same validation and review flow as the web form. |
+| GET, POST | `/api/v1/server/preferences` | Public | Read or update consented guest theme and language preferences as JSON. |
+| GET, POST | `/api/v1/server/preferences/sync`, `/api/v1/server/preferences/sync/import` | Public | Export or import guest preferences in JSON or share-code form. |
+| GET | `/api/v1/server/preferences/tokens` | Owner token | List the authenticated owner's tokens. |
+| POST | `/api/v1/server/preferences/tokens/primary` | Public | Issue a primary owner token for the anonymous visitor's credential-only identity. |
+| DELETE | `/api/v1/server/preferences/tokens/primary` | Owner token | Revoke the primary owner token and all linked tokens for that owner. |
+| POST, PATCH, DELETE | `/api/v1/server/preferences/tokens[/:id]` | Owner token | Create, rename, reveal, rotate, or revoke linked tokens. |
+| GET | `/api/v1/server/auth/check` | Bearer token | Identify the kind of a valid presented service, owner, or linked token without returning the credential. |
+| GET | `/api/v1/server/healthz` | Public | Machine-readable health data with the documented API response format. |
+| GET | `/api/v1/server/swagger` | Public | OpenAPI specification for the versioned REST API. |
+| POST | `/api/v1/server/graphql` | Public | Execute a read-only GraphQL query against the published joke schema. |
+| POST | `/api/v1/server/mcp` | Linked token | Call the stateless Streamable HTTP MCP endpoint with a linked owner token. |
 
 Project data routes are read-only; there are no project-defined create, update, or delete operations.

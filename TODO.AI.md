@@ -17,12 +17,12 @@ This list records requirements verified as missing from the current code during 
 | 8 Server CLI | Gap: current flags and command dispatcher cover only a subset of required commands. |
 | 9 Error handling and caching | Partial: recovery exists; canonical error envelope, cache semantics, and public error paths are incomplete. |
 | 10 Database | Partial: SQLite schema, migrations, persistent generated secrets, joke IDs, owners, tokens, audit and security-report tables exist; libsql, full required tables, backup integration, and several storage flows remain incomplete. |
-| 11 Security and logging | Partial: operator/owner tokens, audit events, URL trust helpers, contact validation, and rotating security IDs exist; the encrypted report pipeline, rate limits, delivery, sanitization, secret lifecycle, and required middleware are incomplete. |
+| 11 Security and logging | Partial: operator/owner tokens, audit events, URL trust helpers, contact validation, rotating security IDs, encrypted security-report storage, and single-use status tokens exist; report notification/acknowledgment delivery, rate limits, sanitization, secret rotation lifecycle, and remaining middleware are incomplete. |
 | 12 Server configuration | Partial: strict primary YAML parsing, secrets separation, drop-in handling for selected security/database settings, trusted proxy/CORS/contact config, and watcher startup exist; the complete canonical schema, all drop-in merging, malformed-file per-file fallback, live application of settings, and many required settings are missing. |
 | 13 Health and versioning | Partial: health endpoints and checks are wired; the canonical complete response, accurate subsystem checks, and version behavior still need conformance. |
 | 14 API structure | Partial: REST/GraphQL/OpenAPI, token routes, contact mirror, MCP, UUID IDs, and discovery exist; full route inventory, schemas, error/content-negotiation behavior, and parity remain incomplete. |
 | 15 SSL/TLS | Partial: SSL package exists; required lifecycle and Let's Encrypt behavior need verification and completion. |
-| 16 Web frontend | Partial: registered SSR pages, preferences/sync/tokens, help, and two-stage contact forms exist; persisted antispam/rate limits, configured captcha providers, email/security-report delivery, DPO data, full preference behavior, language catalogs, accessibility, and PWA conformance remain incomplete. |
+| 16 Web frontend | Partial: registered SSR pages, preferences/sync/tokens, help, two-stage contact forms, configured DPO identity, encrypted security-report status, and persisted single-use CAPTCHA challenges exist; layered contact antispam/rate limits, external CAPTCHA providers, report delivery, configurable page content, full preference behavior, language catalogs, accessibility, and PWA conformance remain incomplete. |
 | 17 Email and notifications | Gap: notification settings exist but delivery providers, templates, and workflows do not. |
 | 18 Scheduler | Partial: timezone-aware cron/interval parsing, catch-up, retry/panic handling, persistent task/history adapters, config task defaults, and always-on startup exist; main currently registers only `healthcheck_self`, leaving required built-in jobs, audit/notification observers, and full shutdown/config integration incomplete. |
 | 19 GeoIP | Gap: no GeoIP feature implementation. |
@@ -43,8 +43,8 @@ This list records requirements verified as missing from the current code during 
 
 ## Critical
 
-- [ ] Finish `/server/*` page/API parity: configured DPO data, the persistent security-report status/notification workflow, canonical per-page JSON schemas, and exact error/content-negotiation behavior.
-- [ ] Complete remaining PART16 behavior: persistent contact antispam/rate limits, configured external CAPTCHA providers, full consent/language coverage, the PWA update watchdog and recovery flow, and final accessibility checks across every page.
+- [ ] Finish `/server/*` page/API parity: configurable page content, privacy tracking metadata, PGP availability, canonical per-page JSON schemas, and exact error/content-negotiation behavior; wire security-report notification and acknowledgment delivery.
+- [ ] Complete remaining PART16 behavior: layered contact antispam/rate limits, configured external CAPTCHA providers, full consent/language coverage, the PWA update watchdog and recovery flow, and final accessibility checks across every page.
 - [ ] Reconcile server configuration with AI.md PARTS 5 and 12: canonical `server.yml`, `yaml.d/`, `secrets.yml`, strict validation, complete required settings, reload behavior, and documentation.
 - [ ] Complete API alignment with AI.md PARTS 13–14: canonical health response, OpenAPI and GraphQL parity, documented error formats, content negotiation, and configured security boundaries.
 - [ ] Implement and document required operational features from AI.md PARTS 15 and 17–24: TLS lifecycle, notifications, scheduler tasks, metrics protection, backup/restore, updates, privilege handling, and native service support.
