@@ -33,7 +33,7 @@ The production compose file is [docker/docker-compose.yml](docker/docker-compose
 
 ## Server
 
-Run `jokes --help` for server options. On first start, the server creates its configuration and secret files in its configuration directory, then initializes its persistent SQLite state. The operator token is printed once at first start; save it securely. The web interface includes browse, search, category, random joke, API reference, owner-token management, guest preferences, reporting, and public server information pages.
+Run `jokes --help` for server options. Use `jokes --shell completions bash` or `jokes --shell init bash` for shell integration. On first start, the server creates its configuration and secret files in its configuration directory, then initializes its persistent SQLite state. The operator token is printed once at first start; save it securely. The web interface includes browse, search, category, random joke, API reference, owner-token management, guest preferences, reporting, and public server information pages.
 
 ## Client CLI
 
