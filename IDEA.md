@@ -109,13 +109,18 @@ All project data is public and read-only; these routes require no authentication
 | Method | Path | Auth | Purpose; request and response |
 |---|---|---|---|
 | GET | `/api/v1/jokes/random` | Public | Optional category and include/exclude filters; returns one random joke. |
+| GET | `/api/v1/jokes/random.txt` | Public | Plain-text alias for one random joke; supports the same filters. |
 | GET | `/api/v1/jokes/random/:count` | Public | Count from 1 to 100 plus optional filters; returns that many random jokes. |
 | GET | `/api/v1/jokes/:id` | Public | Opaque UUID v4 joke ID; returns one joke or not found. |
 | GET | `/api/v1/jokes/all` | Public | Optional search, category filters, page and limit; returns a paginated list. |
+| GET | `/api/v1/jokes/all.txt` | Public | Plain-text alias for the collection endpoint. |
 | GET | `/api/v1/jokes/search` | Public | Required query plus optional category, page and limit; returns paginated matches. |
+| GET | `/api/v1/jokes/search.txt` | Public | Plain-text alias for search results. |
 | GET | `/api/v1/jokes/categories` | Public | No request body; returns category names and joke counts. |
+| GET | `/api/v1/jokes/categories.txt` | Public | Plain-text alias for category names and counts. |
 | GET | `/api/v1/jokes/categories/:category` | Public | Category plus optional page and limit; returns paginated jokes. |
 | GET | `/api/v1/jokes/count` | Public | No request body; returns total count and per-category counts. |
+| GET | `/api/v1/jokes/count.txt` | Public | Plain-text alias for collection totals. |
 | GET | `/browse` | Public | Server-rendered searchable, filterable joke catalog. |
 | GET | `/search` | Public | Server-rendered results for the supplied search query and filters. |
 | GET | `/random` | Public | Server-rendered random joke, optionally filtered by category. |
