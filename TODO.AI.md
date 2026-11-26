@@ -37,7 +37,7 @@ This list records requirements verified as missing from the current code during 
 | 28 Testing and development | Partial: unit, Docker, Incus, and browser E2E harnesses exist; prescribed integration/clean-OS coverage and full scripted execution remain to be checked. |
 | 29 ReadTheDocs | Partial: documentation pages, RTD config, and root `mkdocs.yml` exist; page accuracy and successful documentation builds remain to be verified. |
 | 30 I18N and A11Y | Partial: six embedded locale catalogs, language negotiation, RTL direction, and translated CLI text exist; key parity, complete SSR/browser UI translation, and full WCAG conformance remain incomplete. |
-| 31 Tor and I2P | Gap: no overlay network management. |
+| 31 Tor and I2P | Partial: dedicated Tor and I2P provider helpers, app-owned backends, config defaults, startup/shutdown, health reporting, discovery host resolution, and scheduled health checks are wired; automatic provider recovery, configured address exposure, bandwidth threshold tracking, vanity generation, and full lifecycle tests remain. |
 | 32 Client | Partial: CLI commands, UUID lookup, authentication, and scripts exist; full command/TUI/completion/config and server-operation parity remain incomplete. |
 | 33 IDEA.md reference | Partial: IDEA.md was reconciled with the current AI.md product/auth model, but route inventory and project variables still need full verification. |
 
@@ -52,7 +52,7 @@ This list records requirements verified as missing from the current code during 
 
 ## High
 
-- [ ] Implement conditional Tor support and the container/default-aware I2P behavior from AI.md PART 31.
+- [ ] Complete AI.md PART 31: provider recovery, configured autodiscovery exposure, bandwidth thresholds, vanity address support, and provider-backed lifecycle tests.
 - [ ] Complete the required `jokes-cli` capabilities, interactive mode, shell completions, configuration, and server-operation parity from AI.md PART 32.
 - [ ] Complete the required integration, browser E2E, Docker, and clean-OS test coverage from AI.md PART 28; harnesses now exist, with browser E2E kept on demand.
 - [ ] Add provider-compliant CI workflows for the GitHub remote, including security and vulnerability scans, all platform artifacts, and release workflows under AI.md PART 27.
