@@ -1,10 +1,37 @@
 # Jokes
 
-Jokes is a public, read-only Go service for browsing and retrieving a curated joke collection. The server embeds its dataset and web assets in the binary; it does not require an external runtime service or user account.
+[![CI](https://github.com/apimgr/jokes/actions/workflows/ci.yml/badge.svg)](https://github.com/apimgr/jokes/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/apimgr/jokes)](https://github.com/apimgr/jokes/releases) [![License](https://img.shields.io/github/license/apimgr/jokes)](LICENSE.md) [![Docs](https://readthedocs.org/projects/apimgr-jokes/badge/?version=latest)](https://apimgr-jokes.readthedocs.io/)
 
-[![License](https://img.shields.io/github/license/apimgr/jokes)](LICENSE.md) [![Documentation](https://readthedocs.org/projects/apimgr-jokes/badge/?version=latest)](https://apimgr-jokes.readthedocs.io/)
+## About
 
-## Install
+Jokes is a Go service for browsing and retrieving a curated joke collection. It includes a public read-only joke API, a server-rendered web catalog, GraphQL, an authenticated MCP endpoint, and the companion `jokes-cli`. The server embeds its dataset and web assets in the binary and does not require an external runtime service or user account.
+
+## Features
+
+- Versioned REST API with random, category, ID, search, and paginated collection endpoints
+- GraphQL query endpoint and browser query editor
+- Authenticated, read-only Streamable HTTP MCP tools
+- Server-rendered catalog, category, search, random, and joke detail pages
+- Guest theme and language preferences, owner-token management, and preference sync
+- Localized interface in six languages, including right-to-left Arabic
+- Reporting, public privacy and security pages, health reporting, and API references
+- Installable web interface with offline support for public pages
+- Companion `jokes-cli` for shell use and structured output
+- Embedded joke corpus with no runtime database dependency for joke data
+
+## Production
+
+### Docker Compose
+
+Review the port and persistent volume settings in [docker/docker-compose.yml](docker/docker-compose.yml), then start the service:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+The supplied Compose configuration publishes the service at `172.17.0.1:64580`. Adjust the address and mounts for your host before deployment.
+
+### Binary
 
 Download a release from [GitHub Releases](https://github.com/apimgr/jokes/releases/latest). Releases include server and CLI binaries for Linux, macOS, Windows, and FreeBSD on amd64 and arm64.
 
@@ -15,40 +42,50 @@ Download a release from [GitHub Releases](https://github.com/apimgr/jokes/releas
 | Windows amd64 / arm64 | `jokes-windows-{amd64,arm64}.exe` | `jokes-cli-windows-{amd64,arm64}.exe` |
 | FreeBSD amd64 / arm64 | `jokes-freebsd-{amd64,arm64}` | `jokes-cli-freebsd-{amd64,arm64}` |
 
-On Linux amd64, install the server with:
+For Linux amd64:
 
 ```bash
 curl -q -LSsf -o jokes https://github.com/apimgr/jokes/releases/latest/download/jokes-linux-amd64
 chmod +x jokes
 sudo install -m 0755 jokes /usr/local/bin/jokes
+jokes --help
 ```
 
-For macOS, choose the matching `darwin` binary and remove quarantine after download with `xattr -d com.apple.quarantine ./jokes 2>/dev/null || true`. Windows users should download the matching `.exe` and add its directory to `%PATH%`.
+On first start, the server creates its configuration and secret files in the configured directories, then initializes persistent application state. The operator token is printed once at first start; save it securely. For service installation and other platforms, see the [installation guide](docs/installation.md).
 
-The repository installer scripts support Linux (systemd) and macOS (LaunchDaemon) when run from a complete checkout containing a built binary. See [Installation](docs/installation.md) for their requirements; BSD installation is not provided by these scripts.
+### Native services
 
-## Docker
+The server binary supports service installation and lifecycle commands for the detected host service manager. Review the generated service definition and its user, paths, and environment before starting it. The repository installer scripts support systemd on Linux and LaunchDaemon on macOS; see [installation details](docs/installation.md).
 
-The production compose file is [docker/docker-compose.yml](docker/docker-compose.yml). Review its port and volume settings, then run `docker compose -f docker/docker-compose.yml up -d`.
+## Client
 
-## Server
-
-Run `jokes --help` for server options. Use `jokes --shell completions bash` or `jokes --shell init bash` for shell integration. On first start, the server creates its configuration and secret files in its configuration directory, then initializes its persistent SQLite state. The operator token is printed once at first start; save it securely. The web interface includes browse, search, category, random joke, API reference, owner-token management, guest preferences, reporting, and public server information pages.
-
-## Client CLI
-
-The `jokes-cli` companion supports shell use and structured output:
+Download the matching `jokes-cli` release binary for your platform. On Linux amd64:
 
 ```bash
-jokes-cli --help
-jokes-cli --search programming --count 5
-jokes-cli --category dadjokes
-jokes-cli --id "$JOKE_ID" --format json
+curl -q -LSsf -o jokes-cli https://github.com/apimgr/jokes/releases/latest/download/jokes-cli-linux-amd64
+chmod +x jokes-cli
+sudo install -m 0755 jokes-cli /usr/local/bin/jokes-cli
 ```
+
+Joke retrieval is public and does not require a token. Set the server URL before using the examples:
+
+```bash
+: "${JOKES_SERVER_URL:?Set JOKES_SERVER_URL to the deployed API base URL}"
+jokes-cli --server "$JOKES_SERVER_URL" --search programming --count 5
+jokes-cli --server "$JOKES_SERVER_URL" --category dadjokes
+jokes-cli --server "$JOKES_SERVER_URL" --id "$JOKE_ID" --format json
+jokes-cli --help
+```
+
+See the [CLI reference](docs/cli.md) for options, configuration, shell integration, and operator commands.
+
+## Configuration
+
+The server creates `server.yml`, secret files, and configuration drop-ins in its configuration directory. The `server.yml` file holds primary settings; additional feature settings use `yaml.d/`. See the [configuration guide](docs/configuration.md) for paths, keys, defaults, and secret handling.
 
 ## API
 
-Joke retrieval routes are public and read-only. Public joke IDs are opaque UUIDs; the embedded dataset's numeric source IDs are never exposed. The service exposes REST at `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
+Joke retrieval routes are public and read-only. Public joke IDs are opaque UUIDs; numeric IDs from the embedded corpus are never exposed. The service provides REST under `/api/v1/`, GraphQL at `/api/v1/server/graphql`, the OpenAPI document at `/api/v1/server/swagger`, and browser references at `/server/docs/swagger` and `/server/docs/graphql`.
 
 ```bash
 : "${JOKES_SERVER_URL:?Set JOKES_SERVER_URL to the deployed API base URL}"
@@ -57,26 +94,15 @@ curl -q -LSsf "$JOKES_SERVER_URL/api/v1/jokes/search?q=programming&limit=10"
 curl -q -LSsf "$JOKES_SERVER_URL/api/v1/jokes/categories"
 ```
 
-See the [API reference](https://apimgr-jokes.readthedocs.io/en/latest/api/) for routes, pagination, and response formats.
+The [API reference](docs/api.md) lists pages, discovery paths, endpoint methods, response formats, and authentication requirements. See [integrations](docs/integrations.md) for GraphQL, OpenAPI, MCP, and CORS.
 
-## Documentation
+## Other
 
-User and operator guides are published at [Read the Docs](https://apimgr-jokes.readthedocs.io/), including the [translation guide](https://apimgr-jokes.readthedocs.io/en/latest/translating/).
-
-## Features
-
-- Versioned REST API with random, category, ID, search, and paginated collection endpoints
-- GraphQL query endpoint and browser query form
-- Authenticated Streamable HTTP MCP with read-only joke tools
-- Server-rendered web catalog, categories, search, theme preferences, and PWA assets
-- Server-rendered joke detail pages with themed not-found responses
-- Persistent owner and linked tokens for MCP and owner-scoped API operations
-- Companion `jokes-cli` for shell use
-- Embedded, build-time joke data
+Documentation is published on [Read the Docs](https://apimgr-jokes.readthedocs.io/). The [security guide](docs/security.md) explains token handling and protected endpoints. See the [translation guide](docs/translating.md) to contribute a locale. The curated joke corpus is third-party content; verify its source and item-level terms before redistributing it.
 
 ## Development
 
-Contributors need Docker and Make. All Go commands run in the configured Go toolchain container:
+Contributors need Docker and Make. Go builds and tests run in the configured Docker toolchain:
 
 ```bash
 make dev
@@ -85,15 +111,9 @@ make build
 make test
 ```
 
-`make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Run the lint checks in the Go toolchain container with `go vet ./...`, `staticcheck ./...`, and `gofmt -l ./src`.
+`make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Run `./tests/run_tests.sh` for the basic Docker integration tier. `./tests/incus.sh [systemd|openrc|all]` and `./tests/e2e.sh` are on-demand system and browser checks; they are not part of the commit gate. See the [development guide](docs/development.md) for commands and test tiers.
 
-Run `./tests/run_tests.sh` for the basic Docker tier: it runs `make test`, builds the server and CLI binaries, then smoke-tests their command output, public API routes, and server-rendered pages in a disposable Alpine container. The smoke checks include joke detail pages, the themed 404 for an unknown joke, and the plain-text joke-by-ID endpoint. To run only the binary smoke tier, use `./tests/docker.sh`. Both scripts require Docker.
-
-For on-demand system integration checks, `./tests/incus.sh [systemd|openrc|all]` exercises service installation and lifecycle, API and page routes, owner-token/MCP access, and Tor/I2P health reporting in Debian systemd and Alpine OpenRC containers. It requires Incus; `all` is the default. `./tests/e2e.sh` runs three browser-oriented tiers in Docker: SSR and content-negotiation checks, page/form checks with JavaScript disabled, and Chromium navigation/PWA registration checks. Neither on-demand script is part of `make test` or the commit gate.
-
-### Docker build
-
-`make docker` builds and pushes the multi-architecture image to the configured registry. Set `REGISTRY` before running it. For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`.
+For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`. `make docker` builds and pushes a multi-architecture image to the configured `REGISTRY`.
 
 ## Disclaimer
 
