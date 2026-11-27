@@ -55,7 +55,7 @@ On Linux system installs, startup checks the configured backup directory by crea
 | `server.pages.help.content` | Optional Markdown content appended to the built-in Help page. |
 | `server.branding.content.{header,about,privacy,terms,footer}.{format,body}` | Optional operator page content. About and privacy extend built-in pages, terms replaces its built-in text, and header/footer accept sanitized HTML. Body may be a string or a language map. |
 | `server.branding.{title,tagline,description,logo,favicon}` | Site name, tagline, SEO description, and logo/favicon sources. |
-| `server.seo.{keywords,author,og_image,twitter_handle,title_separator,meta_tags,canonical,noindex}` | Search and social metadata. Site verification codes are validated during config load; invalid codes fail configuration loading. |
+| `server.seo.{keywords,author,og_image,twitter_handle,title_separator,meta_tags,canonical,noindex}` | Search and social metadata. Invalid canonical URLs, verification codes, and metadata entries warn and use the SEO defaults instead of stopping startup. |
 | `server.seo.opengraph.*`, `.twitter.*`, `.verification.*`, `.sitemap.*`, `.feed.*` | OpenGraph/Twitter options and verification tags; sitemap maximum is 50,000 URLs per file and feed entry limit is 1–200 (default 50). |
 | `web.theme`, `.logo`, `.favicon`, `.api_contact`, `.security.contact`, `.footer.*` | Browser theme, branding, public service contacts, and footer settings. |
 | `web.robots.allow`, `.deny` | Generated `robots.txt` rules; allowed public HTML paths are also the only candidates for the sitemap. Defaults allow `/` and `/api`, with no denied paths. |
