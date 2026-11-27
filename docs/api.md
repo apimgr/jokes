@@ -37,6 +37,8 @@ The server renders these pages as HTML. Pages under `/server/` use the shared do
 
 Preference, consent, CCPA, contact, and token actions use HTML forms and server-side validation. Preferences submit with POST `/server/preferences`; consent and CCPA requests use POST `/server/consent` and `/server/ccpa`. Owner-token actions use POST `/server/preferences/token/{create|restore|reveal|rotate|revoke|forget}`. Linked-token actions use POST `/server/preferences/tokens` and `/server/preferences/tokens/{id}/{reveal|rotate|update|revoke}`. The sync import form accepts GET `/server/preferences/sync/import` for its confirmation page and POST `/server/preferences/sync` to apply the import.
 
+Security contact reports use the two-step review flow. A confirmed API submission returns `{ "ok": true, "data": { "tracking_id": "sec_..." } }`; the HTML form renders the tracking ID and mentions an acknowledgment email only when delivery succeeded.
+
 ## Discovery and Static Routes
 
 | Method | Path | Purpose |
