@@ -113,7 +113,7 @@ make test
 
 `make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Add `DOCKER=1` for Docker smoke tests, `INCUS=1 INCUS_MODE=systemd` (or `openrc` / `all`) for service integration, or `E2E=1` for browser checks. Run `./tests/run_tests.sh` for the basic Docker integration tier; run `./tests/incus.sh` or `./tests/e2e.sh` directly when preferred. See the [development guide](docs/development.md) for commands and test tiers.
 
-For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`. `make docker` builds and pushes a multi-architecture image to the configured `REGISTRY`.
+For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`. `make docker` builds and loads a local image for the Docker host platform; it does not push to a registry.
 
 ## Disclaimer
 
