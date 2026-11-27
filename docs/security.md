@@ -10,6 +10,8 @@ Operators manage the disclosure key with `jokes --maintenance pgp generate`, `ro
 
 The server adds browser security headers, including a restrictive Content Security Policy, frame protection, and MIME sniffing protection. Configure trusted proxies explicitly when TLS terminates upstream so public URLs and secure cookies use forwarded request metadata only from trusted peers. Deployments should keep the binary and private configuration current.
 
+Mutating browser routes use HMAC-backed double-submit CSRF tokens in a `SameSite=Strict`, readable `csrf_token` cookie and require the matching form value or `X-CSRF-Token` header. API, compatibility, safe-method, and Bearer-authenticated requests are outside this frontend check. The CSRF cookie signing key rotates automatically; the configured Secure mode is `server.csrf.secure` (`auto` by default).
+
 GeoIP country filtering is a deny-only risk signal. It runs after request rate limiting, bypasses private/internal and configured allowlisted addresses, and never replaces authentication or authorization. Missing, stale, or unreadable databases fail open for requests and appear in health checks. The data is downloaded from ip-location-db with checksum verification; City data is from DB-IP and is credited on `/server/about` and in `LICENSE.md`.
 
 The service has public `/server/privacy`, `/server/terms`, `/server/healthz`, and `/server/security` pages. Health output must not be treated as a source of private deployment details. Guest browser preferences are stored in cookies; the sync flow excludes consent and credentials.
