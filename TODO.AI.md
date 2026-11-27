@@ -11,14 +11,14 @@ This list records requirements verified as missing from the current code during 
 | 2 License and attribution | Partial: application license exists; corpus provenance and item-level redistribution rights are unverified. |
 | 3 Project structure | Partial: Go sources, docs, CI providers, tests, and instruction loaders exist; required generated metadata and complete directory inventory need comparison. |
 | 4 OS paths | Partial: system and user path mode is locked at startup, systemd/OpenRC system containers resolve host paths, and Linux runtime directories are assigned to the service account before privilege drop; full per-OS directory and permission contract remains to be checked. |
-| 5 Configuration | Partial: strict primary YAML loading, private secret separation for operator/encryption/metrics/database/backup credentials, selected drop-in merges, trusted proxies, CORS, contact, nested update settings, and a debounced watcher with an atomic runtime snapshot exist; the canonical full schema, complete drop-in merge, per-setting reload hooks, and remaining settings are incomplete. |
+| 5 Configuration | Partial: strict primary YAML loading, private secret separation for operator/encryption/metrics/database/backup credentials, selected drop-in merges, trusted proxies, CORS, contact, nested update settings, and a debounced watcher with an atomic runtime snapshot exist; `server.baseurl`/`--baseurl`, configurable HTTP request limits and graceful timeout reload, complete drop-in merge (including early listener settings), the canonical full schema, per-setting reload hooks, and remaining settings are incomplete. |
 | 6 Application modes | Partial: mode support exists; transitions and behavior do not meet the complete contract. |
 | 7 Binary requirements | Partial: server and client binaries exist; naming, metadata, hardening, and platform expectations need full comparison. |
 | 8 Server CLI | Gap: current flags and command dispatcher cover only a subset of required commands. |
 | 9 Error handling and caching | Partial: recovery exists; canonical error envelope, cache semantics, and public error paths are incomplete. |
 | 10 Database | Partial: SQLite schema, migrations, persistent generated secrets, joke IDs, owners, tokens, audit and security-report tables exist; libsql, full required tables, backup integration, and several storage flows remain incomplete. |
 | 11 Security and logging | Partial: operator/owner tokens, audit events, URL trust helpers, contact validation, rotating security IDs, encrypted security-report storage, and single-use status tokens exist; report notification/acknowledgment delivery, rate limits, sanitization, secret rotation lifecycle, and remaining middleware are incomplete. |
-| 12 Server configuration | Partial: strict primary YAML parsing, secrets separation, drop-in handling for selected security/database settings, trusted proxy/CORS/contact config, and watcher startup exist; the complete canonical schema, all drop-in merging, malformed-file per-file fallback, live application of settings, and many required settings are missing. |
+| 12 Server configuration | Partial: strict primary YAML parsing, secrets separation, drop-in handling for selected security/database settings, trusted proxy/CORS/contact config, and watcher startup exist; `server.baseurl`/`--baseurl`, configurable HTTP request limits and graceful timeout reload, early listener settings from drop-ins, the complete canonical schema, all drop-in merging, malformed-file per-file fallback, live application of settings, and many required settings are missing. |
 | 13 Health and versioning | Partial: health endpoints and checks are wired; the canonical complete response, accurate subsystem checks, and version behavior still need conformance. |
 | 14 API structure | Partial: REST/GraphQL/OpenAPI, token routes, contact mirror, MCP, UUID IDs, and discovery exist; full route inventory, schemas, error/content-negotiation behavior, and parity remain incomplete. |
 | 15 SSL/TLS | Partial: SSL package exists; required lifecycle and Let's Encrypt behavior need verification and completion. |
@@ -37,8 +37,8 @@ This list records requirements verified as missing from the current code during 
 | 28 Testing and development | Partial: unit tests with 60.0% aggregate coverage, Docker smoke, Chromium browser E2E, and both systemd/OpenRC Incus service integrations pass; additional prescribed integration and clean-OS coverage still needs comparison. |
 | 29 ReadTheDocs | Partial: documentation pages, RTD config, and root `mkdocs.yml` exist; strict local MkDocs build passes, while page accuracy and hosted build still need verification. |
 | 30 I18N and A11Y | Partial: six embedded locale catalogs, language negotiation, RTL direction, and translated CLI text exist; key parity, complete SSR/browser UI translation, and full WCAG conformance remain incomplete. |
-| 31 Tor and I2P | Partial: dedicated Tor and I2P provider helpers, app-owned backends, config defaults, startup/shutdown, health reporting, discovery host resolution, and scheduled health checks are wired; automatic provider recovery, configured address exposure, bandwidth threshold tracking, vanity generation, and full lifecycle tests remain. |
-| 32 Client | Partial: CLI commands, UUID lookup, authentication, and scripts exist; full command/TUI/completion/config and server-operation parity remain incomplete. |
+| 31 Tor and I2P | Partial: dedicated Tor and I2P provider helpers, app-owned backends, config defaults, startup/shutdown, health reporting, configured discovery exposure, scheduled health checks, automatic Tor recovery, and provider-backed lifecycle tests exist; bandwidth threshold tracking, vanity generation/import/apply, and loopback-only Tor maintenance control remain. |
+| 32 Client | Partial: CLI commands, UUID lookup, authentication, scripts, and the specified update completion/checksum/forced audit events exist; full command/TUI/completion/config and server-operation parity remain incomplete. The `cli.update_started` server event is emitted only when the server serves a binary. |
 | 33 IDEA.md reference | Partial: IDEA.md was reconciled with the current AI.md product/auth model, but route inventory and project variables still need full verification. |
 
 ## Critical
@@ -52,7 +52,7 @@ This list records requirements verified as missing from the current code during 
 
 ## High
 
-- [ ] Complete AI.md PART 31: provider recovery, configured autodiscovery exposure, bandwidth thresholds, vanity address support, and provider-backed lifecycle tests.
+- [ ] Complete AI.md PART 31: bandwidth threshold tracking, vanity address generation/import/apply, and the loopback-only Tor maintenance control API and CLI.
 - [ ] Complete the required `jokes-cli` capabilities, interactive mode, shell completions, configuration, and server-operation parity from AI.md PART 32.
 - [ ] Compare remaining integration and clean-OS coverage with AI.md PART 28; unit, Docker smoke, Chromium browser E2E, and systemd/OpenRC Incus integration gates have now passed.
 - [ ] Add provider-compliant CI workflows for the GitHub remote, including security and vulnerability scans, all platform artifacts, and release workflows under AI.md PART 27.
