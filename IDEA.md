@@ -78,7 +78,7 @@ No PII stored or served.
 
 | Boundary | Trust level | Notes |
 |----------|-------------|-------|
-| Joke dataset (embedded at build) | Trusted application data | Static corpus compiled into the binary; provenance and item-level redistribution evidence must be maintained separately from the application-code license. |
+| Joke dataset (embedded at build) | Trusted application data | The project owner states that the static joke corpus is their own work and is in the public domain. It is embedded in the binary and is separate from the MIT-licensed application code. |
 | Incoming HTTP requests | **Untrusted** | All query parameters validated |
 | Configured external integrations | Untrusted | Network responses and provider inputs are validated; optional integrations run only under AI.md configuration and feature rules. |
 

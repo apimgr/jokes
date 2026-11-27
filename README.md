@@ -98,7 +98,7 @@ The [API reference](docs/api.md) lists pages, discovery paths, endpoint methods,
 
 ## Other
 
-Documentation is published on [Read the Docs](https://apimgr-jokes.readthedocs.io/). The [security guide](docs/security.md) explains token handling and protected endpoints. See the [translation guide](docs/translating.md) to contribute a locale. The curated joke corpus is third-party content; verify its source and item-level terms before redistributing it.
+Documentation is published on [Read the Docs](https://apimgr-jokes.readthedocs.io/). The [security guide](docs/security.md) explains token handling and protected endpoints. See the [translation guide](docs/translating.md) to contribute a locale. The project owner states that the joke corpus is their own work and is in the public domain; the application's MIT license applies to the code.
 
 ## Development
 
@@ -111,14 +111,14 @@ make build
 make test
 ```
 
-`make test` runs Go vet, vulnerability scanning, unit tests, and the 60% coverage gate. Add `DOCKER=1` for Docker smoke tests, `INCUS=1 INCUS_MODE=systemd` (or `openrc` / `all`) for service integration, or `E2E=1` for browser checks. Run `./tests/run_tests.sh` for the basic Docker integration tier; run `./tests/incus.sh` or `./tests/e2e.sh` directly when preferred. See the [development guide](docs/development.md) for commands and test tiers.
+`make test` runs Go vet, staticcheck, vulnerability scanning, shell lint and format checks, unit tests, the configured coverage gate, and the basic Docker binary and server-page smoke tests. Add `INCUS=1 INCUS_MODE=systemd` (or `openrc` / `all`) for service integration or `E2E=1` for browser checks. Run `./tests/incus.sh` or `./tests/e2e.sh` directly when preferred. See the [development guide](docs/development.md) for commands and test tiers.
 
 For a local-only image, use `docker buildx build --platform linux/amd64 --load -t jokes:latest -f docker/Dockerfile .`. `make docker` builds and loads a local image for the Docker host platform; it does not push to a registry.
 
 ## Disclaimer
 
-This software is provided as is without warranty. Evaluate it before production use. The application license does not establish reuse rights for the third-party joke corpus.
+This software is provided as is without warranty. Evaluate it before production use. The joke corpus is stated by the project owner to be their own work and in the public domain.
 
 ## License
 
-The application code is licensed under MIT. See [LICENSE.md](LICENSE.md) for dependency attribution. The joke corpus is third-party content; verify its source and item-level terms before redistributing it.
+The application code is licensed under MIT. See [LICENSE.md](LICENSE.md) for dependency attribution. The project owner states that the joke corpus is their own work and is in the public domain.

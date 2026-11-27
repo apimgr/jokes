@@ -17,4 +17,4 @@ The browser provides home, browse/search, random, category, joke detail, API ref
 
 ## License
 
-The application code is licensed under MIT; see the [license and third-party attributions](https://github.com/apimgr/jokes/blob/main/LICENSE.md). The embedded joke corpus is third-party content, and its provenance and item-level redistribution terms have not been verified. The application's MIT license does not grant rights to redistribute the corpus.
+The application code is licensed under MIT; see the [license and third-party attributions](https://github.com/apimgr/jokes/blob/main/LICENSE.md). The project owner states that the embedded joke corpus is their own work and is in the public domain. This public-domain status is separate from the application's MIT license.

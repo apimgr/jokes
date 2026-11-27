@@ -51,8 +51,10 @@ Environment and terminal overrides:
 | `JOKES_OUTPUT_FORMAT` | Default output format |
 | `JOKES_VERBOSE`, `JOKES_DEBUG` | Enable verbose diagnostics or request debugging |
 | `JOKES_COLOR`, `NO_COLOR` | Set color behavior; `NO_COLOR` disables automatic color |
-| `LC_ALL`, `LC_MESSAGES`, `LANG` | Select the CLI language, in that precedence order |
+| `LC_ALL`, `LC_MESSAGES`, `LANG` | Auto-detect the CLI language after `--lang` and `defaults.lang` in `cli.yml`; environment precedence is `LC_ALL`, then `LC_MESSAGES`, then `LANG`, then English |
 | `PAGER` | Select the pager used for long output |
+
+The client sends its resolved language in `Accept-Language` on API requests. Unsupported language values silently fall back to English.
 
 ## Server operator commands
 

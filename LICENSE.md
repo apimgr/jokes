@@ -24,6 +24,10 @@ SOFTWARE.
 
 ## Third-Party Licenses
 
+## Original joke corpus
+
+The project owner states that the joke corpus in `src/data/jokes.json` is their own work and is in the public domain. This statement applies to the corpus and does not change the MIT license for the application code.
+
 This project includes the following third-party software:
 
 ### Gin Web Framework

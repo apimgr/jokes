@@ -13,11 +13,11 @@ make build
 make test
 ```
 
-`make dev` builds into a project-scoped temporary directory. `make local` builds the current platform; `make build` creates server and CLI binaries for Linux, macOS, Windows, and FreeBSD on amd64 and arm64. `make test` runs vet, vulnerability scanning, Go tests, and the 60% coverage gate in the toolchain container. Add `DOCKER=1` to append the Docker binary and server-page smoke tests, `INCUS=1 INCUS_MODE=systemd` (or `openrc` / `all`) to append service integration tests, or `E2E=1` to append browser tests. Run lint checks in the Go toolchain container with `go vet ./...`, `staticcheck ./...`, and `gofumpt -l ./src` plus `goimports -l ./src`.
+`make dev` builds into a project-scoped temporary directory. `make local` builds the current platform; `make build` creates server and CLI binaries for Linux, macOS, Windows, and FreeBSD on amd64 and arm64. `make test` runs `go vet`, `staticcheck`, `govulncheck`, ShellCheck, `shfmt`, Go tests with coverage data conversion and the configured coverage floor, then the basic Docker binary and server-page smoke checks. Add `INCUS=1 INCUS_MODE=systemd` (or `openrc` / `all`) for service integration tests, or `E2E=1` for browser tests. Go checks run in the configured toolchain container.
 
 ## Docker integration smoke checks
 
-`./tests/run_tests.sh` runs the unit-test gate and the basic Docker binary-validation tier. It builds the server and CLI binaries, starts the server in a disposable Alpine container, and checks command output, public API routes, and server-rendered pages. The route checks include the joke detail page, themed 404 for an unknown joke, and plain-text joke-by-ID API endpoint. Runtime files are stored under a project-scoped directory in the OS temporary area and cleaned up on exit. Run `./tests/docker.sh` to run only the binary smoke tier. Both scripts require Docker.
+`make test` calls `./tests/run_tests.sh` after the Go checks. The script runs only the basic Docker binary-validation tier: it builds the server and CLI binaries, starts the server in a disposable Alpine container, and checks command output, public API routes, and server-rendered pages. The route checks include the joke detail page, themed 404 for an unknown joke, and plain-text joke-by-ID API endpoint. Runtime files and default build outputs are stored in a project-scoped directory in the OS temporary area and cleaned up on exit. Run `./tests/docker.sh` to run only the binary smoke tier. Both scripts require Docker.
 
 ## On-demand integration and browser checks
 
