@@ -63,15 +63,32 @@ jokes --baseurl /myproject
 jokes --update check
 jokes --update branch devel
 jokes --update yes
+jokes --maintenance update check
+jokes --maintenance setup
+jokes --maintenance mode production
 jokes --maintenance backup [filename] [--include-data] [--include-ssl]
 jokes --maintenance backup test [file]
 jokes --maintenance email test --dry-run
 jokes --maintenance email test [--to ADDRESS]
 jokes --maintenance restore /path/to/backup.tar.gz
+jokes --maintenance pgp generate
+jokes --maintenance pgp rotate
+jokes --maintenance pgp publish
+jokes --maintenance pgp export public [file]
+jokes --maintenance pgp export private <file>
+jokes --maintenance pgp import <file>
+jokes --maintenance pgp delete
+jokes --maintenance secret rotate installation_secret
+jokes --maintenance secret rotate encryption_key
 jokes --maintenance security list
 jokes --maintenance security show <id>
 jokes --maintenance security export <id>
 jokes --maintenance security update <id> [--status STATUS] [--severity LEVEL] [--comment TEXT] [--disclosure-date YYYY-MM-DD]
+jokes --maintenance token list
+jokes --maintenance token revoke <prefix> [--yes]
+jokes --maintenance data export --owner <prefix> [--output FILE]
+jokes --maintenance data delete --owner <prefix> [--yes]
+jokes --maintenance compliance report
 jokes --maintenance scheduler list
 jokes --maintenance scheduler show <task-id>
 jokes --maintenance scheduler run <task-id>
@@ -89,6 +106,8 @@ jokes --maintenance tor import-keys /absolute/path/to/keys --yes
 ```
 
 `--baseurl` sets the URL path prefix for a subpath deployment; trusted forwarded prefix headers take precedence. The update checker follows the configured `server.update.branch`; `--update branch` changes that setting. Installing an update requires an elevated process. Backups include the configuration directory and an existing local SQLite database, and may be encrypted with `server.backup.encryption_password`. `backup test` checks archive integrity and restores into a temporary directory without changing live data. Security-report commands list, inspect, export, and update report records. Tor control commands contact the running server over its private loopback endpoint; destructive commands require `--yes`.
+
+`--maintenance update` accepts the same `check`, `yes`, and `branch <name>` subcommands as `--update`. `--maintenance setup` is first-run only unless run as root; `--maintenance mode` accepts `production`, `development`, or `debug` and applies after restart. PGP key management, secret rotation, token administration, owner data export/deletion, and compliance reporting require the operator token or root. PGP private-key export/import/deletion and secret rotation require typed confirmation; commands authorized with `server.token` also prompt for that token again, while root runs skip the token prompt. `token revoke` accepts a linked-token prefix or primary-token owner ID and requires confirmation unless `--yes` is supplied. Secret rotation supports only `installation_secret` and `encryption_key`; the previous installation secret is retained for seven days and the previous encryption key for 30 days while encrypted data is migrated. Data export writes a mode-0600 JSON file by default; `--output -` writes it to stdout.
 
 Scheduler commands require the operator token or root. They list task state, show details, run a registered task immediately, enable or disable a task by updating `yaml.d/maintenance.yml`, and read recent task history. Scheduler state has no HTTP API.
 
