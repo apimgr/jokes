@@ -20,9 +20,9 @@ I2P is enabled with `server.i2p.enabled`, `I2P_ENABLED=true`, or `--i2p`; it def
 
 ## MCP
 
-Jokes implements stateless Streamable HTTP MCP. The canonical versioned endpoint is `/api/v1/server/mcp`; `/api/mcp` and `/mcp` are aliases. Requests require `Authorization: Bearer <token>` using a linked owner token created for that client. Primary and operator tokens are rejected. The browser token page can issue a linked token for each client so access can be revoked independently. Browser cookies are not accepted for MCP requests.
+Jokes implements stateless Streamable HTTP MCP at `/api/v1/server/mcp`; `/api/mcp` and `/mcp` are direct aliases. Requests require a valid `Authorization: Bearer <token>` using an existing primary owner, linked owner, or operator token. A linked token is recommended for each MCP client so its access can be revoked independently. Browser cookies are not accepted. Requests use MCP revision `2026-07-28` and carry matching `MCP-Protocol-Version`, `_meta.io.modelcontextprotocol/protocolVersion`, and `Mcp-Method` values. `tools/call` also carries `Mcp-Name` matching the tool name.
 
-The server currently exposes read-only joke tools. It does not expose resources, prompts, OAuth/OIDC, webhooks, or federation. See `/server/help/mcp` for the client connection examples and the protocol revision supported by the running version. `/.well-known/llms.txt` describes the discovered API and MCP endpoint. `/api/autodiscover` provides the API version, public origins, explicitly exposed overlay addresses, and verified CLI releases.
+The tool catalog is derived from the API route registry and uses each OpenAPI `operationId` as its tool name. It includes public API operations and hides cookie-bound preferences, token management, token checks, and internal routes. Public joke lookups are read-only; contact submission is a write operation. The server does not expose MCP resources or prompts. See `/server/help/mcp` for client connection examples. `/.well-known/llms.txt` and the generated OpenAPI document use the same route definitions. `/api/autodiscover` provides the API version, public origins, explicitly exposed overlay addresses, and verified CLI releases.
 
 ## Other well-known endpoints
 
