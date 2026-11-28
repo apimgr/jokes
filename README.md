@@ -74,6 +74,7 @@ Joke retrieval is public and does not require a token. Set the server URL before
 jokes-cli --server "$JOKES_SERVER_URL" --search programming --count 5
 jokes-cli --server "$JOKES_SERVER_URL" --category dadjokes
 jokes-cli --server "$JOKES_SERVER_URL" --id "$JOKE_ID" --format json
+jokes-cli --server "$JOKES_SERVER_URL" health  # Read-only server health check
 jokes-cli --help
 ```
 

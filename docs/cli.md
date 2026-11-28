@@ -8,6 +8,7 @@ jokes-cli --server "$JOKES_SERVER_URL" --search programming --count 5
 jokes-cli --server "$JOKES_SERVER_URL" --category dadjokes
 jokes-cli --server "$JOKES_SERVER_URL" --id "$JOKE_ID" --format json
 jokes-cli --server "$JOKES_SERVER_URL" --count 3
+jokes-cli --server "$JOKES_SERVER_URL" health
 ```
 
 Set `JOKES_SERVER_URL` to the deployed API base URL before running these examples. The client also accepts `JOKES_SERVER_PRIMARY` as the default endpoint. The client does not assume an official endpoint. HTTPS is required except for localhost.
@@ -15,6 +16,20 @@ Set `JOKES_SERVER_URL` to the deployed API base URL before running these example
 Set `JOKE_ID` to an opaque UUID copied from the `id` field in a joke API response. Numeric IDs in the embedded dataset are internal and are not accepted by public lookup routes.
 
 ## Flags
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `health` | Check the server's public health endpoint and print its status |
+| `random` | Retrieve a random joke |
+| `search` | Search joke text and categories |
+| `get UUID` | Retrieve a joke by public UUID |
+| `list` | List jokes |
+| `categories` | List categories |
+| `count` | Count jokes |
+
+The `health` command is read-only and does not require a token. It exits nonzero when the health endpoint is unavailable or unhealthy; `--format json` prints the complete health response.
 
 | Flag | Description |
 |---|---|

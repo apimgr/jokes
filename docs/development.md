@@ -29,6 +29,10 @@ Run `./tests/e2e.sh` or `make test E2E=1` for the three E2E tiers. It builds wit
 
 The code is organized under `src/`; web templates and static assets are embedded in the server binary. Avoid committing generated binaries or runtime configuration.
 
+Server-rendered pages are declared in `src/server/page_routes.go`. The app mounts that registry, and the server conformance test renders every registered page plus the shared error pages. Page-specific state-changing endpoints remain in the app route setup and are not treated as pages.
+
+Runtime dataset health checks are registered in `src/health`; health responses evaluate their cached status callbacks in registration order and expose only stable keys and `ok`, `degraded`, or `error` values. Checks for disabled datasets are removed from the registry.
+
 ## Contributions
 
 Keep changes scoped, update user documentation when behavior changes, and include tests for behavior changes. Review the repository’s AI.md and IDEA.md before changing implementation or product behavior.
