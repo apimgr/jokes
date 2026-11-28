@@ -13,7 +13,7 @@ Jokes is a Go service with a server-rendered catalog, public read-only joke APIs
 - [Contribute](development.md)
 - [Translation guidance](translating.md)
 
-The browser provides home, browse/search, random, category, joke detail, API reference, GraphQL query, about, help, health, privacy, terms, DPO, contact, the security overview/policy/acknowledgments, token-gated security-report status, guest preferences, owner-token management, and preference export/import under `/server/preferences/sync`. Unknown pages and joke IDs render themed 404 responses. Public discovery files include `robots.txt`, `sitemap.xml`, empty Atom and RSS feeds, `/favicon.ico`, `/.well-known/security.txt`, the feature-gated `/.well-known/pgp-key.asc`, and `/.well-known/llms.txt`; the manifest, service worker, and locale catalogs support the installable, offline-enhanced interface.
+The browser provides home, browse/search, random, category, joke detail, API reference, GraphQL query, about, help, health, privacy, terms, DPO, contact, the security overview/policy/acknowledgments, token-gated security-report status, guest preferences, owner-token management, and preference export/import under `/server/preferences/sync`. Unknown pages and joke IDs render themed 404 responses. Public discovery files include `robots.txt`, `sitemap.xml`, empty Atom and RSS feeds, `/favicon.ico`, `/.well-known/security.txt`, the feature-gated `/.well-known/pgp-key.asc`, and `/.well-known/llms.txt`. The installable interface caches only explicitly public pages; offline copies vary by theme, language, and consent state. The page retries safe reads with bounded backoff during restarts, shows a reconnecting status, and offers an update banner with Update now and Later actions.
 
 ## License
 

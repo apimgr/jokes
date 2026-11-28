@@ -1,6 +1,6 @@
 # Jokes
 
-[![CI](https://github.com/apimgr/jokes/actions/workflows/ci.yml/badge.svg)](https://github.com/apimgr/jokes/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/apimgr/jokes)](https://github.com/apimgr/jokes/releases) [![License](https://img.shields.io/github/license/apimgr/jokes)](LICENSE.md) [![Docs](https://readthedocs.org/projects/apimgr-jokes/badge/?version=latest)](https://apimgr-jokes.readthedocs.io/)
+[![CI](https://github.com/apimgr/jokes/actions/workflows/ci.yml/badge.svg)](https://github.com/apimgr/jokes/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/apimgr/jokes)](https://github.com/apimgr/jokes/releases) [![License](https://img.shields.io/github/license/apimgr/jokes)](LICENSE.md)
 
 ## About
 
@@ -98,7 +98,7 @@ The [API reference](docs/api.md) lists pages, discovery paths, endpoint methods,
 
 ## Other
 
-Documentation is published on [Read the Docs](https://apimgr-jokes.readthedocs.io/). The [security guide](docs/security.md) explains token handling and protected endpoints. See the [translation guide](docs/translating.md) to contribute a locale. The project owner states that the joke corpus is their own work and is in the public domain; the application's MIT license applies to the code.
+Documentation source is in `docs/` and uses the MkDocs configuration in `mkdocs.yml`. The Read the Docs project has not been registered yet. The [security guide](docs/security.md) explains token handling and protected endpoints. See the [translation guide](docs/translating.md) to contribute a locale. The project owner states that the joke corpus is their own work and is in the public domain; the application's MIT license applies to the code.
 
 ## Development
 

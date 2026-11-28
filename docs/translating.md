@@ -6,6 +6,8 @@ The application embeds translation catalogs and resolves a language from the `la
 
 The English catalog, `src/common/i18n/locales/en.json`, is the source of truth for message keys. Translators change message values only. Each supported locale must have the same message-key set and placeholder names as English, with the CLDR plural categories required for that language. Locale JSON is UTF-8, two-space indented, has no comments or trailing commas, and includes the locale metadata (`language`, `name`, `native_name`, `direction`, and `version`). A translator may include their preferred name or handle in `meta.translators`.
 
+Security-report acknowledgment subject and body use the `email` catalog keys. The other built-in notification templates have not yet been migrated to locale keys.
+
 ## Translation and review
 
 - Preserve the meaning and intent of the English source. Write complete sentences rather than fragments that must be joined in code.

@@ -69,7 +69,7 @@ This project includes the following third-party software:
 | graphql-js (bundled with Swagger UI) | As distributed by Swagger UI 5.34.1 | MIT | 2014-present Lee Byron and contributors |
 | scheduler and use-sync-external-store (bundled with React) | 18.3.1 distribution | MIT | Facebook, Inc. and Meta Platforms, Inc. |
 
-The upstream license and notice files are retained beside the browser distributions in `src/web/static/vendor/`. Swagger UI's bundled dependency notices are also retained in its `.LICENSE.txt` files. The Swagger UI `NOTICE` content required by Apache-2.0 is:
+The upstream license and notice files are retained beside the browser distributions in `src/server/static/vendor/`. Swagger UI's bundled dependency notices are also retained in its `.LICENSE.txt` files. The Swagger UI `NOTICE` content required by Apache-2.0 is:
 
 > swagger-ui  
 > Copyright 2020-2021 SmartBear Software Inc.
